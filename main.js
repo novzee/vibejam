@@ -11,7 +11,7 @@ class ThreeJSTemplate {
     this.initEnvironment();
     this.initTrack();
     this.initBuildings();
-    this.initSpeedEffects();
+    this.initSpeedEffects(); // Пыль
     this.initTShapeParticles(); // Добавляем инициализацию T-образных частиц
     this.addEventListeners();
     this.animate();
