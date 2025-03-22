@@ -10,14 +10,33 @@ class ThreeJSTemplate {
     this.initCar();
     this.initEnvironment();
     this.initTrack();
-    this.initBuildings();
     this.initSpeedEffects();
     this.initTShapeParticles();
     this.initLODSystem();
     this.optimizeStaticGeometries();
+    this.initObjectSpawner()
     this.addEventListeners();
     this.animate();
+    this.initSimpleToys();
+    this.initControlsInfo();
   }
+
+
+// Добавьте этот новый метод в класс
+initControlsInfo() {
+  const controlsInfo = document.createElement('div');
+  controlsInfo.style.position = 'absolute';
+  controlsInfo.style.top = '10px';
+  controlsInfo.style.left = '10px';
+  controlsInfo.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+  controlsInfo.style.color = 'white';
+  controlsInfo.style.padding = '10px';
+  controlsInfo.style.borderRadius = '5px';
+  controlsInfo.style.fontFamily = 'Arial, sans-serif';
+  controlsInfo.style.zIndex = '1000';
+  controlsInfo.innerHTML = 'Управление - WASD, Ускорение - SHIFT, Создать скалу - J, Создать куст - K, Создать домик - L';
+  document.body.appendChild(controlsInfo);
+}
 
   initTShapeParticles() {
     this.tShapeParticles = [];
@@ -204,16 +223,7 @@ class ThreeJSTemplate {
     this.carVelocity.z = this.carVelocity.z * (1 - this.traction) + this.carDirection.z * this.carSpeed * this.traction;
     this.car.position.x += this.carVelocity.x;
     this.car.position.z += this.carVelocity.z;
-    for (const building of this.buildings) {
-      const buildingBox = new THREE.Box3().setFromObject(building);
-      const carBox = new THREE.Box3().setFromObject(this.car);
-      if (carBox.intersectsBox(buildingBox)) {
-        this.car.position.copy(originalPosition);
-        this.carSpeed *= -0.5;
-        this.carVelocity.multiplyScalar(0.5);
-        break;
-      }
-    }
+    
     this.car.position.y = 0.25;
   }
 
@@ -282,308 +292,9 @@ class ThreeJSTemplate {
     this.scene.add(this.track);
   }
 
-  initBuildings() {
-    this.buildings = [];
-    const gridSize = 5;
-    const blockSize = 30;
-    const streetWidth = 10;
-    for (let blockX = 0; blockX < gridSize; blockX++) {
-      for (let blockZ = 0; blockZ < gridSize; blockZ++) {
-        const centerX = (blockX - gridSize / 2) * (blockSize + streetWidth);
-        const centerZ = (blockZ - gridSize / 2) * (blockSize + streetWidth);
-        const buildingsInBlock = 2 + Math.floor(Math.random() * 3);
-        for (let b = 0; b < buildingsInBlock; b++) {
-          const buildingGroup = new THREE.Group();
-          const width = 8 + Math.random() * 4;
-          const depth = 8 + Math.random() * 4;
-          const floorHeight = 3;
-          const floors = Math.floor(Math.random() * 5) + 3;
-          const totalHeight = floorHeight * floors;
-          const buildingGeometry = new THREE.BoxGeometry(width, totalHeight, depth);
-          let buildingColor;
-          const colorChoice = Math.random();
-          if (colorChoice < 0.3) {
-            buildingColor = 0xd3d3d3;
-          } else if (colorChoice < 0.6) {
-            buildingColor = 0xa9a9a9;
-          } else if (colorChoice < 0.8) {
-            buildingColor = 0xf5f5dc;
-          } else {
-            buildingColor = 0xe8e4c9;
-          }
-          const buildingMaterial = new THREE.MeshStandardMaterial({
-            color: buildingColor,
-            flatShading: true
-          });
-          const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
-          building.position.y = totalHeight / 2;
-          buildingGroup.add(building);
-          const roofGeometry = new THREE.BoxGeometry(width + 0.5, 0.5, depth + 0.5);
-          const roofMaterial = new THREE.MeshStandardMaterial({
-            color: 0x333333
-          });
-          const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-          roof.position.y = totalHeight + 0.25;
-          buildingGroup.add(roof);
-          const windowMaterial = new THREE.MeshStandardMaterial({
-            color: 0x87ceeb,
-            emissive: 0x555555,
-            transparent: true,
-            opacity: 0.8
-          });
-          const windowWidth = 1.2;
-          const windowHeight = 1.5;
-          const windowDepth = 0.05;
-          const edgeMargin = 1;
-          const availableWidth = width - 2 * edgeMargin;
-          const availableDepth = depth - 2 * edgeMargin;
-          const windowsPerWidth = Math.max(1, Math.floor(availableWidth / (windowWidth + 0.5)));
-          const windowsPerDepth = Math.max(1, Math.floor(availableDepth / (windowWidth + 0.5)));
-          const spacingWidth = availableWidth / windowsPerWidth;
-          const spacingDepth = availableDepth / windowsPerDepth;
-          for (let floor = 1; floor < floors; floor++) {
-            const floorY = floor * floorHeight + floorHeight / 2;
-            for (let w = 0; w < windowsPerWidth; w++) {
-              const windowX = (w * spacingWidth + spacingWidth / 2) - availableWidth / 2;
-              const windowGeometry = new THREE.BoxGeometry(windowWidth, windowHeight, windowDepth);
-              const windowMesh = new THREE.Mesh(windowGeometry, windowMaterial.clone());
-              windowMesh.material.emissiveIntensity = Math.random() > 0.6 ? 0.5 : 0;
-              windowMesh.position.set(windowX, floorY, depth / 2 + 0.05);
-              buildingGroup.add(windowMesh);
-            }
-            for (let w = 0; w < windowsPerWidth; w++) {
-              const windowX = (w * spacingWidth + spacingWidth / 2) - availableWidth / 2;
-              const windowGeometry = new THREE.BoxGeometry(windowWidth, windowHeight, windowDepth);
-              const windowMesh = new THREE.Mesh(windowGeometry, windowMaterial.clone());
-              windowMesh.material.emissiveIntensity = Math.random() > 0.6 ? 0.5 : 0;
-              windowMesh.position.set(windowX, floorY, -depth / 2 - 0.05);
-              windowMesh.rotation.y = Math.PI;
-              buildingGroup.add(windowMesh);
-            }
-            for (let d = 0; d < windowsPerDepth; d++) {
-              const windowZ = (d * spacingDepth + spacingDepth / 2) - availableDepth / 2;
-              const windowGeometry = new THREE.BoxGeometry(windowWidth, windowHeight, windowDepth);
-              const windowMesh = new THREE.Mesh(windowGeometry, windowMaterial.clone());
-              windowMesh.material.emissiveIntensity = Math.random() > 0.6 ? 0.5 : 0;
-              windowMesh.position.set(-width / 2 - 0.05, floorY, windowZ);
-              windowMesh.rotation.y = Math.PI / 2;
-              buildingGroup.add(windowMesh);
-            }
-            for (let d = 0; d < windowsPerDepth; d++) {
-              const windowZ = (d * spacingDepth + spacingDepth / 2) - availableDepth / 2;
-              const windowGeometry = new THREE.BoxGeometry(windowWidth, windowHeight, windowDepth);
-              const windowMesh = new THREE.Mesh(windowGeometry, windowMaterial.clone());
-              windowMesh.material.emissiveIntensity = Math.random() > 0.6 ? 0.5 : 0;
-              windowMesh.position.set(width / 2 + 0.05, floorY, windowZ);
-              windowMesh.rotation.y = -Math.PI / 2;
-              buildingGroup.add(windowMesh);
-            }
-          }
-          const storeFrontMaterial = new THREE.MeshStandardMaterial({
-            color: 0x87ceeb,
-            emissive: 0x666666,
-            emissiveIntensity: 0.3,
-            transparent: true,
-            opacity: 0.9
-          });
-          const storeFrontWidth = 2.5;
-          const storeFrontHeight = 2.2;
-          const storeFrontsPerSide = Math.min(2, windowsPerWidth);
-          for (let sf = 0; sf < storeFrontsPerSide; sf++) {
-            const sfX = (sf * (width / storeFrontsPerSide) + width / (storeFrontsPerSide * 2)) - width / 2;
-            const frontSF = new THREE.Mesh(
-              new THREE.BoxGeometry(storeFrontWidth, storeFrontHeight, windowDepth),
-              storeFrontMaterial.clone()
-            );
-            frontSF.position.set(sfX, storeFrontHeight / 2, depth / 2 + 0.05);
-            buildingGroup.add(frontSF);
-            const backSF = new THREE.Mesh(
-              new THREE.BoxGeometry(storeFrontWidth, storeFrontHeight, windowDepth),
-              storeFrontMaterial.clone()
-            );
-            backSF.position.set(sfX, storeFrontHeight / 2, -depth / 2 - 0.05);
-            backSF.rotation.y = Math.PI;
-            buildingGroup.add(backSF);
-          }
-          const doorWidth = 1.8;
-          const doorHeight = 2.5;
-          const doorGeometry = new THREE.BoxGeometry(doorWidth, doorHeight, 0.1);
-          const doorMaterial = new THREE.MeshStandardMaterial({
-            color: 0x8b4513,
-            metalness: 0.5,
-            roughness: 0.7
-          });
-          const door = new THREE.Mesh(doorGeometry, doorMaterial);
-          const facingStreet = Math.floor(Math.random() * 4);
-          if (facingStreet === 0) {
-            door.position.set(0, doorHeight / 2, depth / 2 + 0.1);
-          } else if (facingStreet === 1) {
-            door.position.set(0, doorHeight / 2, -depth / 2 - 0.1);
-            door.rotation.y = Math.PI;
-          } else if (facingStreet === 2) {
-            door.position.set(-width / 2 - 0.1, doorHeight / 2, 0);
-            door.rotation.y = Math.PI / 2;
-          } else {
-            door.position.set(width / 2 + 0.1, doorHeight / 2, 0);
-            door.rotation.y = -Math.PI / 2;
-          }
-          buildingGroup.add(door);
-          const canopyGeometry = new THREE.BoxGeometry(doorWidth + 0.5, 0.3, 1);
-          const canopyMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
-          const canopy = new THREE.Mesh(canopyGeometry, canopyMaterial);
-          if (facingStreet === 0) {
-            canopy.position.set(0, doorHeight + 0.15, depth / 2 + 0.5);
-          } else if (facingStreet === 1) {
-            canopy.position.set(0, doorHeight + 0.15, -depth / 2 - 0.5);
-            canopy.rotation.y = Math.PI;
-          } else if (facingStreet === 2) {
-            canopy.position.set(-width / 2 - 0.5, doorHeight + 0.15, 0);
-            canopy.rotation.y = Math.PI / 2;
-          } else {
-            canopy.position.set(width / 2 + 0.5, doorHeight + 0.15, 0);
-            canopy.rotation.y = -Math.PI / 2;
-          }
-          buildingGroup.add(canopy);
-          let posX, posZ;
-          switch (b % 4) {
-            case 0:
-              posX = centerX - blockSize / 2 + width / 2 + 1;
-              posZ = centerZ - blockSize / 2 + depth / 2 + 1;
-              break;
-            case 1:
-              posX = centerX + blockSize / 2 - width / 2 - 1;
-              posZ = centerZ - blockSize / 2 + depth / 2 + 1;
-              break;
-            case 2:
-              posX = centerX + blockSize / 2 - width / 2 - 1;
-              posZ = centerZ + blockSize / 2 - depth / 2 - 1;
-              break;
-            case 3:
-              posX = centerX - blockSize / 2 + width / 2 + 1;
-              posZ = centerZ + blockSize / 2 - depth / 2 - 1;
-              break;
-          }
-          buildingGroup.position.set(posX, 0, posZ);
-          if (b % 4 === 0) {
-            buildingGroup.rotation.y = Math.PI * 0.5;
-          } else if (b % 4 === 1) {
-            buildingGroup.rotation.y = Math.PI * 1.0;
-          } else if (b % 4 === 2) {
-            buildingGroup.rotation.y = Math.PI * 1.5;
-          } else {
-            buildingGroup.rotation.y = 0;
-          }
-          const collisionBox = new THREE.Box3().setFromObject(building);
-          building.userData = {
-            group: buildingGroup,
-            collisionBox: collisionBox
-          };
-          this.scene.add(buildingGroup);
-          this.buildings.push(building);
-        }
-        const sidewalkHeight = 0.2;
-        const sidewalkWidth = 3;
-        const sidewalkMaterial = new THREE.MeshStandardMaterial({
-          color: 0xcccccc,
-          roughness: 0.9
-        });
-        const topSidewalk = new THREE.Mesh(
-          new THREE.BoxGeometry(blockSize + 2 * sidewalkWidth, sidewalkHeight, sidewalkWidth),
-          sidewalkMaterial
-        );
-        topSidewalk.position.set(
-          centerX,
-          sidewalkHeight / 2,
-          centerZ - blockSize / 2 - sidewalkWidth / 2
-        );
-        this.scene.add(topSidewalk);
-        const bottomSidewalk = new THREE.Mesh(
-          new THREE.BoxGeometry(blockSize + 2 * sidewalkWidth, sidewalkHeight, sidewalkWidth),
-          sidewalkMaterial
-        );
-        bottomSidewalk.position.set(
-          centerX,
-          sidewalkHeight / 2,
-          centerZ + blockSize / 2 + sidewalkWidth / 2
-        );
-        this.scene.add(bottomSidewalk);
-        const leftSidewalk = new THREE.Mesh(
-          new THREE.BoxGeometry(sidewalkWidth, sidewalkHeight, blockSize),
-          sidewalkMaterial
-        );
-        leftSidewalk.position.set(
-          centerX - blockSize / 2 - sidewalkWidth / 2,
-          sidewalkHeight / 2,
-          centerZ
-        );
-        this.scene.add(leftSidewalk);
-        const rightSidewalk = new THREE.Mesh(
-          new THREE.BoxGeometry(sidewalkWidth, sidewalkHeight, blockSize),
-          sidewalkMaterial
-        );
-        rightSidewalk.position.set(
-          centerX + blockSize / 2 + sidewalkWidth / 2,
-          sidewalkHeight / 2,
-          centerZ
-        );
-        this.scene.add(rightSidewalk);
-      }
-    }
-    const roadMaterial = new THREE.MeshStandardMaterial({
-      color: 0x333333,
-      roughness: 0.8
-    });
-    for (let i = 0; i <= gridSize; i++) {
-      const roadZ = (i - gridSize / 2) * (blockSize + streetWidth) - blockSize / 2;
-      const roadLength = gridSize * (blockSize + streetWidth);
-      const horizontalRoad = new THREE.Mesh(
-        new THREE.BoxGeometry(roadLength, 0.1, streetWidth),
-        roadMaterial
-      );
-      horizontalRoad.position.set(0, 0.05, roadZ);
-      this.scene.add(horizontalRoad);
-      const lineLength = 3;
-      const lineGap = 3;
-      const totalLines = Math.floor(roadLength / (lineLength + lineGap));
-      const lineMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
-      for (let j = 0; j < totalLines; j++) {
-        const line = new THREE.Mesh(
-          new THREE.BoxGeometry(lineLength, 0.15, 0.2),
-          lineMaterial
-        );
-        const lineX = (j * (lineLength + lineGap)) - roadLength / 2 + lineLength / 2;
-        line.position.set(lineX, 0.1, roadZ);
-        this.scene.add(line);
-      }
-    }
-    for (let i = 0; i <= gridSize; i++) {
-      const roadX = (i - gridSize / 2) * (blockSize + streetWidth) - blockSize / 2;
-      const roadLength = gridSize * (blockSize + streetWidth);
-      const verticalRoad = new THREE.Mesh(
-        new THREE.BoxGeometry(streetWidth, 0.1, roadLength),
-        roadMaterial
-      );
-      verticalRoad.position.set(roadX, 0.05, 0);
-      this.scene.add(verticalRoad);
-      const lineLength = 3;
-      const lineGap = 3;
-      const totalLines = Math.floor(roadLength / (lineLength + lineGap));
-      const lineMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
-      for (let j = 0; j < totalLines; j++) {
-        const line = new THREE.Mesh(
-          new THREE.BoxGeometry(0.2, 0.15, lineLength),
-          lineMaterial
-        );
-        const lineZ = (j * (lineLength + lineGap)) - roadLength / 2 + lineLength / 2;
-        line.position.set(roadX, 0.1, lineZ);
-        this.scene.add(line);
-      }
-    }
-  }
-
   initSpeedEffects() {
     this.speedLines = [];
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 3; i++) {
       const geometry = new THREE.BufferGeometry();
       const positions = new Float32Array(3 * 2);
       positions.set([0, 0.1, 0, 0, 0.1, -1.5]);
@@ -744,6 +455,494 @@ class ThreeJSTemplate {
     }
   }
 
+//-------------------------------------------------------------------------------------------
+initSimpleToys() {
+  // Создание простой горы
+  this.createSimpleMountain();
+  
+  // Создание простого куста
+  this.createSimpleBush();
+}
+
+createSimpleMountain() {
+  const mountainGroup = new THREE.Group();
+  
+  // Основная часть горы - более сглаженная и естественная форма
+  const mountainGeometry = new THREE.ConeGeometry(4, 7, 8);
+  
+  // Материал для горы с имитацией текстуры камня
+  const mountainMaterial = new THREE.MeshStandardMaterial({
+    color: 0x696969, // Темно-серый цвет для горы
+    roughness: 0.9,
+    flatShading: true // Для создания граненой поверхности
+  });
+  
+  const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
+  mountainGroup.add(mountain);
+  
+  // Добавляем вторую, меньшую гору рядом для создания горного массива
+  const smallerMountainGeometry = new THREE.ConeGeometry(8, 12, 8);
+  const smallerMountain = new THREE.Mesh(smallerMountainGeometry, mountainMaterial.clone());
+  smallerMountain.position.set(2.5, 0, 1.5);
+  mountainGroup.add(smallerMountain);
+  
+  // Добавляем третью, еще меньшую гору
+  const smallestMountainGeometry = new THREE.ConeGeometry(6, 8, 6);
+  const smallestMountain = new THREE.Mesh(smallestMountainGeometry, mountainMaterial.clone());
+  smallestMountain.position.set(-2, 0, -1.5);
+  mountainGroup.add(smallestMountain);
+  
+  // Добавляем снежные шапки на вершины гор
+  const snowMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.5
+  });
+  
+  // Снежная шапка для основной горы
+  const mainSnowCapGeometry = new THREE.ConeGeometry(1.5, 6, 4);
+  const mainSnowCap = new THREE.Mesh(mainSnowCapGeometry, snowMaterial);
+  mainSnowCap.position.y = 3.5;
+  mountainGroup.add(mainSnowCap);
+  
+  // Снежная шапка для второй горы
+  const smallerSnowCapGeometry = new THREE.ConeGeometry(1.1, 6, 4);
+  const smallerSnowCap = new THREE.Mesh(smallerSnowCapGeometry, snowMaterial);
+  smallerSnowCap.position.set(2.5, 2.5, 1.5);
+  mountainGroup.add(smallerSnowCap);
+  
+  // Снежная шапка для третьей горы
+  const smallestSnowCapGeometry = new THREE.ConeGeometry(0.8, 0.8, 8);
+  const smallestSnowCap = new THREE.Mesh(smallestSnowCapGeometry, snowMaterial);
+  smallestSnowCap.position.set(-2, 0, -1.5);
+  mountainGroup.add(smallestSnowCap);
+  
+  // Добавляем "каменистость" у основания гор
+  for (let i = 0; i < 12; i++) {
+    const rockSize = 0.5 + Math.random() * 0.8;
+    const rockGeometry = new THREE.DodecahedronGeometry(rockSize, 0); // Используем додекаэдр для имитации камней
+    const rockMaterial = mountainMaterial.clone();
+    rockMaterial.color.offsetHSL(0, 0, (Math.random() * 0.2) - 0.1); // Варьируем яркость
+    
+    const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+    
+    // Размещаем камни вокруг основания гор
+    const angle = (i / 12) * Math.PI * 2;
+    const radius = 4 + Math.random() * 2;
+    rock.position.set(
+      Math.cos(angle) * radius,
+      rockSize * 0.5 - 0.2, // Слегка погружаем в землю
+      Math.sin(angle) * radius
+    );
+    
+    // Случайно поворачиваем камни
+    rock.rotation.set(
+      Math.random() * Math.PI,
+      Math.random() * Math.PI,
+      Math.random() * Math.PI
+    );
+    
+    // Случайно масштабируем для большего разнообразия
+    rock.scale.set(
+      1 + (Math.random() * 0.4 - 0.2),
+      1 + (Math.random() * 0.4 - 0.2),
+      1 + (Math.random() * 0.4 - 0.2)
+    );
+    
+    mountainGroup.add(rock);
+  }
+  
+  // Позиционируем горный массив
+  mountainGroup.position.set(5, 0, 0);
+  
+  this.scene.add(mountainGroup);
+  this.mountain = mountainGroup;
+}
+createSimpleBush() {
+  const bushGroup = new THREE.Group();
+  
+  // Ствол - низкий и тонкий
+  const trunkGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.3, 8);
+  const trunkMaterial = new THREE.MeshStandardMaterial({
+    color: 0x8b4513,
+    roughness: 0.8
+  });
+  
+  const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+  trunk.position.y = 0.15;
+  bushGroup.add(trunk);
+  
+  // Создаем "облакоподобную" крону из нескольких сфер
+  const leafMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2e8b57,
+    roughness: 0.7
+  });
+  
+  // Расположение сфер для создания эффекта пушистого куста
+  const spherePositions = [
+    { x: 0, y: 0.5, z: 0, radius: 0.7 },
+    { x: 0.5, y: 0.4, z: 0, radius: 0.5 },
+    { x: -0.5, y: 0.4, z: 0, radius: 0.5 },
+    { x: 0, y: 0.4, z: 0.5, radius: 0.5 },
+    { x: 0, y: 0.4, z: -0.5, radius: 0.5 },
+    { x: 0.35, y: 0.35, z: 0.35, radius: 0.4 },
+    { x: -0.35, y: 0.35, z: 0.35, radius: 0.4 },
+    { x: 0.35, y: 0.35, z: -0.35, radius: 0.4 },
+    { x: -0.35, y: 0.35, z: -0.35, radius: 0.4 }
+  ];
+  
+  // Используем низкополигональные сферы для лучшей производительности
+  spherePositions.forEach(pos => {
+    // Уменьшаем количество сегментов для оптимизации
+    const sphereGeometry = new THREE.SphereGeometry(pos.radius, 6, 6);
+    const sphere = new THREE.Mesh(sphereGeometry, leafMaterial);
+    sphere.position.set(pos.x, pos.y, pos.z);
+    bushGroup.add(sphere);
+  });
+  
+  // Добавляем небольшие вариации цвета для разных частей куста
+  bushGroup.children.forEach((child, index) => {
+    if (index > 0) { // Пропускаем ствол
+      // Клонируем материал для каждой сферы, чтобы они могли иметь немного разные оттенки
+      child.material = leafMaterial.clone();
+      // Слегка варьируем оттенок зеленого
+      const hueOffset = (Math.random() * 0.1) - 0.05;
+      const lightnessOffset = (Math.random() * 0.1) - 0.05;
+      child.material.color.offsetHSL(hueOffset, 0.1, lightnessOffset);
+    }
+  });
+  
+  // Немного сплющиваем куст, чтобы он был ближе к земле
+  bushGroup.scale.y = 0.8;
+  
+  // Добавляем куст в сцену
+  bushGroup.position.set(-5, 0, 0);
+  this.scene.add(bushGroup);
+  this.woodenBush = bushGroup;
+}
+//------------------------------------------------------------------
+
+// Добавьте эту функцию в ваш класс
+initMountainSpawner() {
+  // Обработчик для клавиши J
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "KeyJ") {
+      // Создаем гору на текущей позиции автомобиля
+      this.spawnMountainAtCurrentPosition();
+      
+      // Собираем данные о всех объектах сцены
+      this.logSceneData();
+    }
+  });
+  
+  // Массив для хранения информации о размещенных объектах
+  this.placedObjects = [];
+}
+// Добавьте эту функцию в ваш класс
+createSimpleHouse() {
+  const houseGroup = new THREE.Group();
+  
+  // Основание гаража/пит-стопа в ярких цветах
+  const baseGeometry = new THREE.BoxGeometry(5, 3, 4);
+  const wallMaterial = new THREE.MeshStandardMaterial({
+    color: 0x3498db, // Яркий синий
+    roughness: 0.5
+  });
+  
+  const base = new THREE.Mesh(baseGeometry, wallMaterial);
+  base.position.y = 1.5;
+  houseGroup.add(base);
+  
+  // Крыша - навес в стиле пит-стопа
+  const roofGeometry = new THREE.BoxGeometry(7, 0.3, 5);
+  const roofMaterial = new THREE.MeshStandardMaterial({
+    color: 0xe74c3c, // Яркий красный
+    roughness: 0.5
+  });
+  
+  const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+  roof.position.y = 3.5;
+  houseGroup.add(roof);
+  
+  // Колонны поддерживающие навес
+  const columnGeometry = new THREE.CylinderGeometry(0.2, 0.2, 3, 8);
+  const columnMaterial = new THREE.MeshStandardMaterial({
+    color: 0xf1c40f, // Яркий желтый
+    roughness: 0.5
+  });
+  
+  // Четыре колонны по углам
+  const column1 = new THREE.Mesh(columnGeometry, columnMaterial);
+  column1.position.set(3, 1.5, 2);
+  houseGroup.add(column1);
+  
+  const column2 = new THREE.Mesh(columnGeometry, columnMaterial);
+  column2.position.set(3, 1.5, -2);
+  houseGroup.add(column2);
+  
+  const column3 = new THREE.Mesh(columnGeometry, columnMaterial);
+  column3.position.set(-3, 1.5, 2);
+  houseGroup.add(column3);
+  
+  const column4 = new THREE.Mesh(columnGeometry, columnMaterial);
+  column4.position.set(-3, 1.5, -2);
+  houseGroup.add(column4);
+  
+  // Большие двери гаража
+  const doorGeometry = new THREE.PlaneGeometry(3, 2.5);
+  const doorMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2ecc71, // Яркий зеленый
+    roughness: 0.6,
+    side: THREE.DoubleSide
+  });
+  
+  const door = new THREE.Mesh(doorGeometry, doorMaterial);
+  door.position.set(0, 1.25, 2.01);
+  houseGroup.add(door);
+  
+  // Полосы на здании в гоночном стиле
+  const stripeGeometry = new THREE.BoxGeometry(5.02, 0.5, 0.1);
+  const stripeMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff // Белый
+  });
+  
+  const stripe1 = new THREE.Mesh(stripeGeometry, stripeMaterial);
+  stripe1.position.set(0, 1, 2.01);
+  houseGroup.add(stripe1);
+  
+  const stripe2 = new THREE.Mesh(stripeGeometry, stripeMaterial);
+  stripe2.position.set(0, 1, -2.01);
+  houseGroup.add(stripe2);
+  
+  // Полосы на боковых сторонах
+  const sideStripeGeometry = new THREE.BoxGeometry(0.1, 0.5, 4.02);
+  
+  const stripe3 = new THREE.Mesh(sideStripeGeometry, stripeMaterial);
+  stripe3.position.set(2.51, 1, 0);
+  houseGroup.add(stripe3);
+  
+  const stripe4 = new THREE.Mesh(sideStripeGeometry, stripeMaterial);
+  stripe4.position.set(-2.51, 1, 0);
+  houseGroup.add(stripe4);
+  
+  // Окна
+  const windowGeometry = new THREE.PlaneGeometry(1.5, 1);
+  const windowMaterial = new THREE.MeshStandardMaterial({
+    color: 0xd0d3d4,
+    roughness: 0.2,
+    transparent: true,
+    opacity: 0.7,
+    side: THREE.DoubleSide
+  });
+  
+  // Окна на боковых сторонах
+  const window1 = new THREE.Mesh(windowGeometry, windowMaterial);
+  window1.position.set(2.51, 2, 1);
+  window1.rotation.y = Math.PI / 2;
+  houseGroup.add(window1);
+  
+  const window2 = new THREE.Mesh(windowGeometry, windowMaterial);
+  window2.position.set(2.51, 2, -1);
+  window2.rotation.y = Math.PI / 2;
+  houseGroup.add(window2);
+  
+  const window3 = new THREE.Mesh(windowGeometry, windowMaterial);
+  window3.position.set(-2.51, 2, 1);
+  window3.rotation.y = Math.PI / 2;
+  houseGroup.add(window3);
+  
+  const window4 = new THREE.Mesh(windowGeometry, windowMaterial);
+  window4.position.set(-2.51, 2, -1);
+  window4.rotation.y = Math.PI / 2;
+  houseGroup.add(window4);
+  
+  // Большая вывеска на крыше
+  const signGeometry = new THREE.BoxGeometry(4, 1, 0.2);
+  const signMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff9800, // Оранжевый
+    roughness: 0.5
+  });
+  
+  const sign = new THREE.Mesh(signGeometry, signMaterial);
+  sign.position.set(0, 4.5, 0);
+  houseGroup.add(sign);
+  
+  // Флаги
+  const flagPoleGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8);
+  const flagPoleMaterial = new THREE.MeshStandardMaterial({
+    color: 0xc0c0c0
+  });
+  
+  const flagPole = new THREE.Mesh(flagPoleGeometry, flagPoleMaterial);
+  flagPole.position.set(0, 5.5, 0);
+  houseGroup.add(flagPole);
+  
+  const flagGeometry = new THREE.PlaneGeometry(0.8, 0.5);
+  const flagMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff0000, // Красный
+    side: THREE.DoubleSide
+  });
+  
+  const flag = new THREE.Mesh(flagGeometry, flagMaterial);
+  flag.position.set(0.4, 5.7, 0);
+  flag.rotation.y = Math.PI / 2;
+  houseGroup.add(flag);
+  
+  return houseGroup;
+}
+
+// Добавьте эту функцию в ваш класс
+spawnHouseAtCurrentPosition() {
+  // Создаем новый домик
+  const newHouse = this.createSimpleHouse();
+  
+  // Устанавливаем позицию на текущую позицию автомобиля
+  newHouse.position.copy(this.car.position);
+  
+  // Случайный поворот для разнообразия
+  newHouse.rotation.y = Math.random() * Math.PI * 2;
+  
+  // Добавляем в сцену
+  this.scene.add(newHouse);
+  
+  // Сохраняем информацию об объекте
+  this.placedObjects.push({
+    type: 'house',
+    position: {
+      x: newHouse.position.x,
+      y: newHouse.position.y,
+      z: newHouse.position.z
+    },
+    rotation: {
+      y: newHouse.rotation.y
+    }
+  });
+  
+  console.log(`Домик создан на позиции: x=${newHouse.position.x.toFixed(2)}, y=${newHouse.position.y.toFixed(2)}, z=${newHouse.position.z.toFixed(2)}`);
+}
+
+// Функция для создания горы на текущей позиции
+spawnMountainAtCurrentPosition() {
+  // Клонируем существующую гору
+  const newMountain = this.mountain.clone();
+  
+  // Устанавливаем позицию на текущую позицию автомобиля
+  newMountain.position.copy(this.car.position);
+  
+  // Случайный поворот для разнообразия
+  newMountain.rotation.y = Math.random() * Math.PI * 2;
+  
+  // Добавляем в сцену
+  this.scene.add(newMountain);
+  
+  // Сохраняем информацию об объекте
+  this.placedObjects.push({
+    type: 'mountain',
+    position: {
+      x: newMountain.position.x,
+      y: newMountain.position.y,
+      z: newMountain.position.z
+    },
+    rotation: {
+      y: newMountain.rotation.y
+    }
+  });
+  
+  console.log(`Гора создана на позиции: x=${newMountain.position.x.toFixed(2)}, y=${newMountain.position.y.toFixed(2)}, z=${newMountain.position.z.toFixed(2)}`);
+}
+
+// Функция для вывода данных о всей сцене в консоль
+logSceneData() {
+  console.log("=== ДАННЫЕ О РАЗМЕЩЕННЫХ ОБЪЕКТАХ ===");
+  console.log(JSON.stringify(this.placedObjects, null, 2));
+  console.log("Скопируйте этот JSON и отправьте его для генерации сцены");
+  
+  // Создаем строку для генерации кода
+  let codeString = `
+// Код для генерации сцены
+function generateScene() {
+  const sceneData = ${JSON.stringify(this.placedObjects, null, 2)};
+  
+  sceneData.forEach(obj => {
+    if (obj.type === 'mountain') {
+      const mountain = this.mountain.clone();
+      mountain.position.set(obj.position.x, obj.position.y, obj.position.z);
+      mountain.rotation.y = obj.rotation.y;
+      this.scene.add(mountain);
+    } else if (obj.type === 'bush') {
+      const bush = this.woodenBush.clone();
+      bush.position.set(obj.position.x, obj.position.y, obj.position.z);
+      bush.rotation.y = obj.rotation.y;
+      this.scene.add(bush);
+    }
+  });
+}`;
+  
+  console.log("=== КОД ДЛЯ ГЕНЕРАЦИИ СЦЕНЫ ===");
+  console.log(codeString);
+}
+
+// Добавьте эту функцию в ваш класс
+spawnBushAtCurrentPosition() {
+  // Клонируем существующий куст
+  const newBush = this.woodenBush.clone();
+  
+  // Устанавливаем позицию на текущую позицию автомобиля
+  newBush.position.copy(this.car.position);
+  
+  // Случайный поворот для разнообразия
+  newBush.rotation.y = Math.random() * Math.PI * 2;
+  
+  // Добавляем в сцену
+  this.scene.add(newBush);
+  
+  // Сохраняем информацию об объекте
+  this.placedObjects.push({
+    type: 'bush',
+    position: {
+      x: newBush.position.x,
+      y: newBush.position.y,
+      z: newBush.position.z
+    },
+    rotation: {
+      y: newBush.rotation.y
+    }
+  });
+  
+  console.log(`Куст создан на позиции: x=${newBush.position.x.toFixed(2)}, y=${newBush.position.y.toFixed(2)}, z=${newBush.position.z.toFixed(2)}`);
+}
+
+initObjectSpawner() {
+  // Обработчик для клавиш J, K и L
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "KeyJ") {
+      // Создаем гору на текущей позиции автомобиля
+      this.spawnMountainAtCurrentPosition();
+      
+      // Собираем данные о всех объектах сцены
+      this.logSceneData();
+    }
+    else if (e.code === "KeyK") {
+      // Создаем куст на текущей позиции автомобиля
+      this.spawnBushAtCurrentPosition();
+      
+      // Собираем данные о всех объектах сцены
+      this.logSceneData();
+    }
+    else if (e.code === "KeyL") {
+      // Создаем домик на текущей позиции автомобиля
+      this.spawnHouseAtCurrentPosition();
+      
+      // Собираем данные о всех объектах сцены
+      this.logSceneData();
+    }
+  });
+  
+  // Массив для хранения информации о размещенных объектах
+  this.placedObjects = [];
+}
+
+//-----------------------------------------------------------------------------------------------------------------
+
   initLODSystem() {
     this.frustum = new THREE.Frustum();
     this.cameraViewProjectionMatrix = new THREE.Matrix4();
@@ -778,33 +977,8 @@ class ThreeJSTemplate {
 
   updateVisibleObjects() {
     this.updateCar();
-    this.updateVisibleBuildings();
     this.updateNearbyEffects();
     this.updateCamera();
-  }
-
-  updateVisibleBuildings() {
-    const cameraPosition = this.camera.position;
-    for (const building of this.buildings) {
-      const buildingGroup = building.userData.group;
-      const distance = cameraPosition.distanceTo(buildingGroup.position);
-      if (distance > this.visibilityDistance) {
-        if (buildingGroup.visible) {
-          buildingGroup.visible = false;
-        }
-        continue;
-      }
-      if (!buildingGroup.visible) {
-        buildingGroup.visible = true;
-      }
-      if (distance < this.LODlevels.near) {
-        this.setHighDetailLOD(buildingGroup);
-      } else if (distance < this.LODlevels.medium) {
-        this.setMediumDetailLOD(buildingGroup);
-      } else {
-        this.setLowDetailLOD(buildingGroup);
-      }
-    }
   }
 
   setHighDetailLOD(buildingGroup) {
