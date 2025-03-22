@@ -19,9 +19,86 @@ class ThreeJSTemplate {
     this.animate();
     this.initSimpleToys();
     this.initControlsInfo();
+    this.addParkourVideo();
+    this.addSlimeVideo();
   }
 
-
+  addParkourVideo() {
+    // Создаем контейнер для видео
+    const videoContainer = document.createElement('div');
+    videoContainer.style.position = 'fixed';
+    videoContainer.style.bottom = '10px';
+    videoContainer.style.right = '10px';
+    videoContainer.style.width = '25%'; // 1/5 ширины экрана
+    videoContainer.style.zIndex = '1000';
+    videoContainer.style.pointerEvents = 'none'; // Отключаем взаимодействие с видео
+    videoContainer.style.borderRadius = '8px';
+    videoContainer.style.overflow = 'hidden';
+    videoContainer.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+    
+    // Создаем iframe для YouTube видео
+    const iframe = document.createElement('iframe');
+    iframe.width = '100%';
+    iframe.height = '100%';
+    iframe.style.aspectRatio = '16/9';
+    
+    // Параметры видео:
+    // - autoplay=1: автоматически воспроизводить
+    // - mute=1: без звука
+    // - controls=0: без элементов управления
+    // - loop=1: зацикливание
+    // - disablekb=1: отключение клавиатурного управления
+    // - modestbranding=1: минимальный брендинг
+    // - start=50: начать с 50-й секунды
+    iframe.src = 'https://www.youtube.com/embed/n_Dv4JMiwK8?autoplay=1&mute=1&controls=0&loop=1&disablekb=1&modestbranding=1&start=50&playlist=n_Dv4JMiwK8';
+    iframe.frameBorder = '0';
+    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+    iframe.allowFullscreen = false;
+    
+    // Добавляем iframe в контейнер
+    videoContainer.appendChild(iframe);
+    
+    // Добавляем контейнер на страницу
+    document.body.appendChild(videoContainer);
+  }
+  addSlimeVideo() {
+    // Создаем контейнер для видео
+    const videoContainer = document.createElement('div');
+    videoContainer.style.position = 'fixed';
+    videoContainer.style.bottom = '10px';
+    videoContainer.style.left = '10px';
+    videoContainer.style.width = '25%'; // 1/5 ширины экрана
+    videoContainer.style.zIndex = '1000';
+    videoContainer.style.pointerEvents = 'none'; // Отключаем взаимодействие с видео
+    videoContainer.style.borderRadius = '8px';
+    videoContainer.style.overflow = 'hidden';
+    videoContainer.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+    
+    // Создаем iframe для YouTube видео
+    const iframe = document.createElement('iframe');
+    iframe.width = '100%';
+    iframe.height = '100%';
+    iframe.style.aspectRatio = '16/9';
+    
+    // Параметры видео:
+    // - autoplay=1: автоматически воспроизводить
+    // - mute=1: без звука
+    // - controls=0: без элементов управления
+    // - loop=1: зацикливание
+    // - disablekb=1: отключение клавиатурного управления
+    // - modestbranding=1: минимальный брендинг
+    // - start=50: начать с 50-й секунды
+    iframe.src = 'https://www.youtube.com/embed/HDp6r4dCedw?autoplay=1&mute=1&controls=0&loop=1&disablekb=1&modestbranding=1&playlist=HDp6r4dCedw';
+    iframe.frameBorder = '0';
+    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+    iframe.allowFullscreen = false;
+    
+    // Добавляем iframe в контейнер
+    videoContainer.appendChild(iframe);
+    
+    // Добавляем контейнер на страницу
+    document.body.appendChild(videoContainer);
+  }
 // Добавьте этот новый метод в класс
 initControlsInfo() {
   const controlsInfo = document.createElement('div');
