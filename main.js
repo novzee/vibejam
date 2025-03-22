@@ -317,53 +317,280 @@ class ThreeJSTemplate {
     }
 
     initCar() {
-        const geometry = new THREE.BoxGeometry(1, 0.5, 2);
-        const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-        this.car = new THREE.Mesh(geometry, material);
-        this.scene.add(this.car);
-        this.carSpeed = 0;
-        this.carVelocity = new THREE.Vector3(0, 0, 0);
-        this.carDirection = new THREE.Vector3(0, 0, 1);
-        this.isDrifting = false;
-        this.driftFactor = 0;
-        this.traction = 1.0;
-        this.smokeParticles = [];
-        this.keys = {};
-        window.addEventListener("keydown", (e) => (this.keys[e.code] = true));
-        window.addEventListener("keyup", (e) => (this.keys[e.code] = false));
-    }
-
-
-    updateCar() {
-        this.carDirection.set(Math.sin(this.car.rotation.y), 0, Math.cos(this.car.rotation.y));
-        let acceleration = 0;
-        if (this.keys["KeyW"]) {
-            acceleration = this.keys["ShiftLeft"] || this.keys["ShiftRight"] ? 0.01 : 0.005;
-        } else if (this.keys["KeyS"]) acceleration = -0.005;
-        this.carSpeed += acceleration;
-        this.carSpeed *= 0.98;
-        let steering = 0;
-        if (this.keys["KeyA"]) steering = 0.03;
-        if (this.keys["KeyD"]) steering = -0.03;
-        const steeringIntensity = Math.abs(steering);
-        const speedThreshold = 0.08;
-        if (Math.abs(this.carSpeed) > speedThreshold && steeringIntensity > 0) {
-            this.isDrifting = true;
-            this.traction = Math.max(0.3, this.traction - 0.1);
-            this.createDriftSmoke();
-        } else {
-            this.traction = Math.min(1.0, this.traction + 0.05);
-            this.isDrifting = false;
-        }
-        this.car.rotation.y += steering * (this.isDrifting ? 1.5 : 1.0);
-        const originalPosition = this.car.position.clone();
-        this.carVelocity.x = this.carVelocity.x * (1 - this.traction) + this.carDirection.x * this.carSpeed * this.traction;
-        this.carVelocity.z = this.carVelocity.z * (1 - this.traction) + this.carDirection.z * this.carSpeed * this.traction;
-        this.car.position.x += this.carVelocity.x;
-        this.car.position.z += this.carVelocity.z;
-
-        this.car.position.y = 0.25;
-    }
+      // Основные настройки
+      const carColor = 0xf7b731; // Яркий золотисто-желтый цвет вместо красного
+      
+      // Создаем основной корпус машины
+      const bodyGeometry = new THREE.BoxGeometry(1, 0.2, 2);
+      const bodyMaterial = new THREE.MeshStandardMaterial({ 
+          color: carColor,
+          metalness: 0.7,
+          roughness: 0.3
+      });
+      this.car = new THREE.Group();
+      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+      body.position.y = 0.3;
+      this.car.add(body);
+      
+      // Добавляем крышу (более низкую, как у Ламборгини)
+      const roofGeometry = new THREE.BoxGeometry(0.8, 0.25, 0.9);
+      const roofMaterial = new THREE.MeshStandardMaterial({ 
+          color: carColor,
+          metalness: 0.7,
+          roughness: 0.3,
+      });
+      const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+      roof.position.y = 0.4;
+      roof.position.z = -0.3;
+      roof.rotation.x = Math.PI / 2 - 105;
+      this.car.add(roof);
+      
+      // Добавляем капот (заостренный, как у старой Ламборгини)
+      const hoodGeometry = new THREE.BoxGeometry(0.9, 0.1, 0.6);
+      const hoodMaterial = new THREE.MeshStandardMaterial({ 
+          color: carColor,
+          metalness: 0.7,
+          roughness: 0.3
+      });
+      const hood = new THREE.Mesh(hoodGeometry, hoodMaterial);
+      hood.position.y = 0.35;
+      hood.position.z = 0.7;
+      this.car.add(hood);
+      
+      // Создаем группы для передних колес чтобы их можно было поворачивать
+      this.frontWheelGroup = new THREE.Group();
+      this.frontWheelGroup.position.set(0, 0, 0.6);
+      this.car.add(this.frontWheelGroup);
+      
+      // Добавляем колеса (позиционируем ближе к корпусу)
+      const wheelGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16);
+      const wheelMaterial = new THREE.MeshStandardMaterial({ 
+          color: 0x111111,
+          roughness: 0.7
+      });
+      const wheelRimMaterial = new THREE.MeshStandardMaterial({
+          color: 0xdddddd,
+          metalness: 0.9,
+          roughness: 0.1
+      });
+      
+      // Функция для создания колеса с дисками
+      const createWheel = () => {
+          const wheelGroup = new THREE.Group();
+          
+          // Шина
+          const tire = new THREE.Mesh(wheelGeometry, wheelMaterial);
+          wheelGroup.add(tire);
+          
+          // Диск
+          const rimGeometry = new THREE.CylinderGeometry(0.12, 0.12, 0.11, 8);
+          const rim = new THREE.Mesh(rimGeometry, wheelRimMaterial);
+          wheelGroup.add(rim);
+          
+          // Спицы
+          for (let i = 0; i < 5; i++) {
+              const spokeGeometry = new THREE.BoxGeometry(0.02, 0.02, 0.2);
+              const spoke = new THREE.Mesh(spokeGeometry, wheelRimMaterial);
+              spoke.rotation.x = Math.PI / 2;
+              spoke.rotation.y = (Math.PI / 2.5) * i;
+              wheelGroup.add(spoke);
+          }
+          
+          wheelGroup.rotation.z = Math.PI / 2;
+          return wheelGroup;
+      };
+      
+      // Переднее левое колесо
+      this.frontLeftWheel = createWheel();
+      this.frontLeftWheel.position.set(0.5, 0.2, 0.1);
+      this.frontWheelGroup.add(this.frontLeftWheel);
+      
+      // Переднее правое колесо
+      this.frontRightWheel = createWheel();
+      this.frontRightWheel.position.set(-0.5, 0.2, 0.1);
+      this.frontWheelGroup.add(this.frontRightWheel);
+      
+      // Заднее левое колесо - исправляем позицию
+      this.rearLeftWheel = createWheel();
+      this.rearLeftWheel.position.set(0.5, 0.2, -0.6); // Было -1.2, теперь ближе к центру машины
+      this.car.add(this.rearLeftWheel);
+      
+      // Заднее правое колесо - исправляем позицию
+      this.rearRightWheel = createWheel();
+      this.rearRightWheel.position.set(-0.5, 0.2, -0.6); // Было -1.2, теперь ближе к центру машины
+      this.car.add(this.rearRightWheel);
+      
+      // Добавляем фары
+      const headlightGeometry = new THREE.SphereGeometry(0.1, 12, 12);
+      const headlightMaterial = new THREE.MeshStandardMaterial({ 
+          color: 0xffffcc, 
+          emissive: 0xffffcc,
+          emissiveIntensity: 1
+      });
+      
+      const leftHeadlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
+      leftHeadlight.position.set(0.3, 0.3, 1.0);
+      this.car.add(leftHeadlight);
+      
+      const rightHeadlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
+      rightHeadlight.position.set(-0.3, 0.3, 1.0);
+      this.car.add(rightHeadlight);
+      
+      // Добавляем задние фонари
+      const tailLightGeometry = new THREE.SphereGeometry(0.07, 8, 8);
+      const tailLightMaterial = new THREE.MeshStandardMaterial({ 
+          color: 0xff0000, 
+          emissive: 0xff0000,
+          emissiveIntensity: 0.8
+      });
+      
+      const leftTailLight = new THREE.Mesh(tailLightGeometry, tailLightMaterial);
+      leftTailLight.position.set(0.3, 0.3, -1.0);
+      this.car.add(leftTailLight);
+      
+      const rightTailLight = new THREE.Mesh(tailLightGeometry, tailLightMaterial);
+      rightTailLight.position.set(-0.3, 0.3, -1.0);
+      this.car.add(rightTailLight);
+      
+      // Добавляем лобовое стекло
+      const windshieldGeometry = new THREE.PlaneGeometry(0.7, 0.3);
+      const windshieldMaterial = new THREE.MeshStandardMaterial({ 
+          color: 0x88ccff,
+          transparent: true,
+          opacity: 0.7
+      });
+      const windshield = new THREE.Mesh(windshieldGeometry, windshieldMaterial);
+      windshield.rotation.x = -Math.PI / 4;
+      windshield.position.set(0, 0.5, 0.25);
+      this.car.add(windshield);
+      
+      this.scene.add(this.car);
+      this.carSpeed = 0;
+      this.carVelocity = new THREE.Vector3(0, 0, 0);
+      this.carDirection = new THREE.Vector3(0, 0, 1);
+      this.isDrifting = false;
+      this.driftFactor = 0;
+      this.traction = 1.0;
+      this.smokeParticles = [];
+      this.wheels = [this.frontLeftWheel, this.frontRightWheel, this.rearLeftWheel, this.rearRightWheel];
+      this.keys = {};
+      window.addEventListener("keydown", (e) => (this.keys[e.code] = true));
+      window.addEventListener("keyup", (e) => (this.keys[e.code] = false));
+  }
+  
+  updateCar() {
+      this.carDirection.set(Math.sin(this.car.rotation.y), 0, Math.cos(this.car.rotation.y));
+      let acceleration = 0;
+      if (this.keys["KeyW"]) {
+          acceleration = this.keys["ShiftLeft"] || this.keys["ShiftRight"] ? 0.01 : 0.005;
+      } else if (this.keys["KeyS"]) acceleration = -0.005;
+      this.carSpeed += acceleration;
+      this.carSpeed *= 0.98;
+      
+      let steering = 0;
+      if (this.keys["KeyA"]) steering = 0.03;
+      if (this.keys["KeyD"]) steering = -0.03;
+      
+      // Поворачиваем передние колеса при повороте
+      if (steering !== 0) {
+          this.frontWheelGroup.rotation.y = steering * 10; // Усиливаем эффект для видимости
+      } else {
+          // Плавно возвращаем колеса в прямое положение
+          this.frontWheelGroup.rotation.y *= 0.8;
+      }
+      
+      const steeringIntensity = Math.abs(steering);
+      const speedThreshold = 0.08;
+      
+      if (Math.abs(this.carSpeed) > speedThreshold && steeringIntensity > 0) {
+          this.isDrifting = true;
+          this.traction = Math.max(0.3, this.traction - 0.1);
+          this.createDriftSmoke();
+      } else {
+          this.traction = Math.min(1.0, this.traction + 0.05);
+          this.isDrifting = false;
+      }
+      
+      this.car.rotation.y += steering * (this.isDrifting ? 1.5 : 1.0);
+      
+      // Вращаем колеса при движении с учетом направления
+      const wheelRotationSpeed = this.carSpeed * 0.5;
+      this.wheels.forEach(wheel => {
+          wheel.rotation.x += wheelRotationSpeed;
+      });
+      
+      // Добавляем небольшую анимацию подвески при движении
+      if (this.carSpeed !== 0) {
+          const bounceAmount = Math.sin(Date.now() * 0.01) * 0.005 * Math.abs(this.carSpeed) * 5;
+          this.car.position.y = bounceAmount + 0.05;
+          
+          // Наклоняем машину при разгоне/торможении
+          if (acceleration > 0) {
+              this.car.rotation.x = -0.03 * Math.abs(this.carSpeed) * 3;
+          } else if (acceleration < 0) {
+              this.car.rotation.x = 0.03 * Math.abs(this.carSpeed) * 3;
+          } else {
+              this.car.rotation.x *= 0.9; // Плавно возвращаемся к горизонтальному положению
+          }
+          
+          // Наклоняем машину в сторону поворота
+          if (steering !== 0) {
+              this.car.rotation.z = -steering * Math.abs(this.carSpeed) * 2;
+          } else {
+              this.car.rotation.z *= 0.9; // Плавно возвращаемся к вертикальному положению
+          }
+      }
+      
+      this.carVelocity.x = this.carVelocity.x * (1 - this.traction) + this.carDirection.x * this.carSpeed * this.traction;
+      this.carVelocity.z = this.carVelocity.z * (1 - this.traction) + this.carDirection.z * this.carSpeed * this.traction;
+      
+      this.car.position.x += this.carVelocity.x;
+      this.car.position.z += this.carVelocity.z;
+  }
+  
+  // Метод для создания эффекта дыма при дрифте
+  createDriftSmoke() {
+      if (Math.random() > 0.7 && Math.abs(this.carSpeed) > 0.1) {
+          const smokeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+          const smokeMaterial = new THREE.MeshBasicMaterial({
+              color: 0xdddddd,
+              transparent: true,
+              opacity: 0.7
+          });
+          
+          // Создаем частицы дыма у задних колес
+          const leftSmoke = new THREE.Mesh(smokeGeometry, smokeMaterial);
+          leftSmoke.position.copy(this.rearLeftWheel.position.clone());
+          leftSmoke.position.add(this.car.position);
+          leftSmoke.position.y = 0.1;
+          leftSmoke.scale.set(0.5, 0.5, 0.5);
+          leftSmoke.life = 40; // Время жизни частицы
+          
+          const rightSmoke = new THREE.Mesh(smokeGeometry, smokeMaterial);
+          rightSmoke.position.copy(this.rearRightWheel.position.clone());
+          rightSmoke.position.add(this.car.position);
+          rightSmoke.position.y = 0.1;
+          rightSmoke.scale.set(0.5, 0.5, 0.5);
+          rightSmoke.life = 40;
+          
+          this.scene.add(leftSmoke);
+          this.scene.add(rightSmoke);
+          this.smokeParticles.push(leftSmoke, rightSmoke);
+      }
+      
+      // Обновляем все частицы дыма
+      for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
+          const particle = this.smokeParticles[i];
+          particle.life--;
+          particle.scale.multiplyScalar(1.03);
+          particle.material.opacity *= 0.95;
+          
+          if (particle.life <= 0) {
+              this.scene.remove(particle);
+              this.smokeParticles.splice(i, 1);
+          }
+      }
+  }
 
     createDriftSmoke() {
         if (Math.abs(this.carSpeed) < 0.03) return;
@@ -1235,7 +1462,5 @@ function generateScene() {
         this.camera.lookAt(this.car.position);
     }
 }
-
-new ThreeJSTemplate();
 
 new ThreeJSTemplate();
