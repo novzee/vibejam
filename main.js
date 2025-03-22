@@ -14,9 +14,29 @@ class ThreeJSTemplate {
     this.initTShapeParticles();
     this.initLODSystem();
     this.optimizeStaticGeometries();
+    this.initObjectSpawner()
     this.addEventListeners();
     this.animate();
+    this.initSimpleToys();
+    this.initControlsInfo();
   }
+
+
+// Добавьте этот новый метод в класс
+initControlsInfo() {
+  const controlsInfo = document.createElement('div');
+  controlsInfo.style.position = 'absolute';
+  controlsInfo.style.top = '10px';
+  controlsInfo.style.left = '10px';
+  controlsInfo.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+  controlsInfo.style.color = 'white';
+  controlsInfo.style.padding = '10px';
+  controlsInfo.style.borderRadius = '5px';
+  controlsInfo.style.fontFamily = 'Arial, sans-serif';
+  controlsInfo.style.zIndex = '1000';
+  controlsInfo.innerHTML = 'Управление - WASD, Ускорение - SHIFT, Создать скалу - J, Создать куст - K, Создать домик - L';
+  document.body.appendChild(controlsInfo);
+}
 
   initTShapeParticles() {
     this.tShapeParticles = [];
@@ -434,6 +454,494 @@ class ThreeJSTemplate {
       particle.userData.velocity.multiplyScalar(0.95);
     }
   }
+
+//-------------------------------------------------------------------------------------------
+initSimpleToys() {
+  // Создание простой горы
+  this.createSimpleMountain();
+  
+  // Создание простого куста
+  this.createSimpleBush();
+}
+
+createSimpleMountain() {
+  const mountainGroup = new THREE.Group();
+  
+  // Основная часть горы - более сглаженная и естественная форма
+  const mountainGeometry = new THREE.ConeGeometry(4, 7, 8);
+  
+  // Материал для горы с имитацией текстуры камня
+  const mountainMaterial = new THREE.MeshStandardMaterial({
+    color: 0x696969, // Темно-серый цвет для горы
+    roughness: 0.9,
+    flatShading: true // Для создания граненой поверхности
+  });
+  
+  const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
+  mountainGroup.add(mountain);
+  
+  // Добавляем вторую, меньшую гору рядом для создания горного массива
+  const smallerMountainGeometry = new THREE.ConeGeometry(8, 12, 8);
+  const smallerMountain = new THREE.Mesh(smallerMountainGeometry, mountainMaterial.clone());
+  smallerMountain.position.set(2.5, 0, 1.5);
+  mountainGroup.add(smallerMountain);
+  
+  // Добавляем третью, еще меньшую гору
+  const smallestMountainGeometry = new THREE.ConeGeometry(6, 8, 6);
+  const smallestMountain = new THREE.Mesh(smallestMountainGeometry, mountainMaterial.clone());
+  smallestMountain.position.set(-2, 0, -1.5);
+  mountainGroup.add(smallestMountain);
+  
+  // Добавляем снежные шапки на вершины гор
+  const snowMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.5
+  });
+  
+  // Снежная шапка для основной горы
+  const mainSnowCapGeometry = new THREE.ConeGeometry(1.5, 6, 4);
+  const mainSnowCap = new THREE.Mesh(mainSnowCapGeometry, snowMaterial);
+  mainSnowCap.position.y = 3.5;
+  mountainGroup.add(mainSnowCap);
+  
+  // Снежная шапка для второй горы
+  const smallerSnowCapGeometry = new THREE.ConeGeometry(1.1, 6, 4);
+  const smallerSnowCap = new THREE.Mesh(smallerSnowCapGeometry, snowMaterial);
+  smallerSnowCap.position.set(2.5, 2.5, 1.5);
+  mountainGroup.add(smallerSnowCap);
+  
+  // Снежная шапка для третьей горы
+  const smallestSnowCapGeometry = new THREE.ConeGeometry(0.8, 0.8, 8);
+  const smallestSnowCap = new THREE.Mesh(smallestSnowCapGeometry, snowMaterial);
+  smallestSnowCap.position.set(-2, 0, -1.5);
+  mountainGroup.add(smallestSnowCap);
+  
+  // Добавляем "каменистость" у основания гор
+  for (let i = 0; i < 12; i++) {
+    const rockSize = 0.5 + Math.random() * 0.8;
+    const rockGeometry = new THREE.DodecahedronGeometry(rockSize, 0); // Используем додекаэдр для имитации камней
+    const rockMaterial = mountainMaterial.clone();
+    rockMaterial.color.offsetHSL(0, 0, (Math.random() * 0.2) - 0.1); // Варьируем яркость
+    
+    const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+    
+    // Размещаем камни вокруг основания гор
+    const angle = (i / 12) * Math.PI * 2;
+    const radius = 4 + Math.random() * 2;
+    rock.position.set(
+      Math.cos(angle) * radius,
+      rockSize * 0.5 - 0.2, // Слегка погружаем в землю
+      Math.sin(angle) * radius
+    );
+    
+    // Случайно поворачиваем камни
+    rock.rotation.set(
+      Math.random() * Math.PI,
+      Math.random() * Math.PI,
+      Math.random() * Math.PI
+    );
+    
+    // Случайно масштабируем для большего разнообразия
+    rock.scale.set(
+      1 + (Math.random() * 0.4 - 0.2),
+      1 + (Math.random() * 0.4 - 0.2),
+      1 + (Math.random() * 0.4 - 0.2)
+    );
+    
+    mountainGroup.add(rock);
+  }
+  
+  // Позиционируем горный массив
+  mountainGroup.position.set(5, 0, 0);
+  
+  this.scene.add(mountainGroup);
+  this.mountain = mountainGroup;
+}
+createSimpleBush() {
+  const bushGroup = new THREE.Group();
+  
+  // Ствол - низкий и тонкий
+  const trunkGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.3, 8);
+  const trunkMaterial = new THREE.MeshStandardMaterial({
+    color: 0x8b4513,
+    roughness: 0.8
+  });
+  
+  const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+  trunk.position.y = 0.15;
+  bushGroup.add(trunk);
+  
+  // Создаем "облакоподобную" крону из нескольких сфер
+  const leafMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2e8b57,
+    roughness: 0.7
+  });
+  
+  // Расположение сфер для создания эффекта пушистого куста
+  const spherePositions = [
+    { x: 0, y: 0.5, z: 0, radius: 0.7 },
+    { x: 0.5, y: 0.4, z: 0, radius: 0.5 },
+    { x: -0.5, y: 0.4, z: 0, radius: 0.5 },
+    { x: 0, y: 0.4, z: 0.5, radius: 0.5 },
+    { x: 0, y: 0.4, z: -0.5, radius: 0.5 },
+    { x: 0.35, y: 0.35, z: 0.35, radius: 0.4 },
+    { x: -0.35, y: 0.35, z: 0.35, radius: 0.4 },
+    { x: 0.35, y: 0.35, z: -0.35, radius: 0.4 },
+    { x: -0.35, y: 0.35, z: -0.35, radius: 0.4 }
+  ];
+  
+  // Используем низкополигональные сферы для лучшей производительности
+  spherePositions.forEach(pos => {
+    // Уменьшаем количество сегментов для оптимизации
+    const sphereGeometry = new THREE.SphereGeometry(pos.radius, 6, 6);
+    const sphere = new THREE.Mesh(sphereGeometry, leafMaterial);
+    sphere.position.set(pos.x, pos.y, pos.z);
+    bushGroup.add(sphere);
+  });
+  
+  // Добавляем небольшие вариации цвета для разных частей куста
+  bushGroup.children.forEach((child, index) => {
+    if (index > 0) { // Пропускаем ствол
+      // Клонируем материал для каждой сферы, чтобы они могли иметь немного разные оттенки
+      child.material = leafMaterial.clone();
+      // Слегка варьируем оттенок зеленого
+      const hueOffset = (Math.random() * 0.1) - 0.05;
+      const lightnessOffset = (Math.random() * 0.1) - 0.05;
+      child.material.color.offsetHSL(hueOffset, 0.1, lightnessOffset);
+    }
+  });
+  
+  // Немного сплющиваем куст, чтобы он был ближе к земле
+  bushGroup.scale.y = 0.8;
+  
+  // Добавляем куст в сцену
+  bushGroup.position.set(-5, 0, 0);
+  this.scene.add(bushGroup);
+  this.woodenBush = bushGroup;
+}
+//------------------------------------------------------------------
+
+// Добавьте эту функцию в ваш класс
+initMountainSpawner() {
+  // Обработчик для клавиши J
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "KeyJ") {
+      // Создаем гору на текущей позиции автомобиля
+      this.spawnMountainAtCurrentPosition();
+      
+      // Собираем данные о всех объектах сцены
+      this.logSceneData();
+    }
+  });
+  
+  // Массив для хранения информации о размещенных объектах
+  this.placedObjects = [];
+}
+// Добавьте эту функцию в ваш класс
+createSimpleHouse() {
+  const houseGroup = new THREE.Group();
+  
+  // Основание гаража/пит-стопа в ярких цветах
+  const baseGeometry = new THREE.BoxGeometry(5, 3, 4);
+  const wallMaterial = new THREE.MeshStandardMaterial({
+    color: 0x3498db, // Яркий синий
+    roughness: 0.5
+  });
+  
+  const base = new THREE.Mesh(baseGeometry, wallMaterial);
+  base.position.y = 1.5;
+  houseGroup.add(base);
+  
+  // Крыша - навес в стиле пит-стопа
+  const roofGeometry = new THREE.BoxGeometry(7, 0.3, 5);
+  const roofMaterial = new THREE.MeshStandardMaterial({
+    color: 0xe74c3c, // Яркий красный
+    roughness: 0.5
+  });
+  
+  const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+  roof.position.y = 3.5;
+  houseGroup.add(roof);
+  
+  // Колонны поддерживающие навес
+  const columnGeometry = new THREE.CylinderGeometry(0.2, 0.2, 3, 8);
+  const columnMaterial = new THREE.MeshStandardMaterial({
+    color: 0xf1c40f, // Яркий желтый
+    roughness: 0.5
+  });
+  
+  // Четыре колонны по углам
+  const column1 = new THREE.Mesh(columnGeometry, columnMaterial);
+  column1.position.set(3, 1.5, 2);
+  houseGroup.add(column1);
+  
+  const column2 = new THREE.Mesh(columnGeometry, columnMaterial);
+  column2.position.set(3, 1.5, -2);
+  houseGroup.add(column2);
+  
+  const column3 = new THREE.Mesh(columnGeometry, columnMaterial);
+  column3.position.set(-3, 1.5, 2);
+  houseGroup.add(column3);
+  
+  const column4 = new THREE.Mesh(columnGeometry, columnMaterial);
+  column4.position.set(-3, 1.5, -2);
+  houseGroup.add(column4);
+  
+  // Большие двери гаража
+  const doorGeometry = new THREE.PlaneGeometry(3, 2.5);
+  const doorMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2ecc71, // Яркий зеленый
+    roughness: 0.6,
+    side: THREE.DoubleSide
+  });
+  
+  const door = new THREE.Mesh(doorGeometry, doorMaterial);
+  door.position.set(0, 1.25, 2.01);
+  houseGroup.add(door);
+  
+  // Полосы на здании в гоночном стиле
+  const stripeGeometry = new THREE.BoxGeometry(5.02, 0.5, 0.1);
+  const stripeMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff // Белый
+  });
+  
+  const stripe1 = new THREE.Mesh(stripeGeometry, stripeMaterial);
+  stripe1.position.set(0, 1, 2.01);
+  houseGroup.add(stripe1);
+  
+  const stripe2 = new THREE.Mesh(stripeGeometry, stripeMaterial);
+  stripe2.position.set(0, 1, -2.01);
+  houseGroup.add(stripe2);
+  
+  // Полосы на боковых сторонах
+  const sideStripeGeometry = new THREE.BoxGeometry(0.1, 0.5, 4.02);
+  
+  const stripe3 = new THREE.Mesh(sideStripeGeometry, stripeMaterial);
+  stripe3.position.set(2.51, 1, 0);
+  houseGroup.add(stripe3);
+  
+  const stripe4 = new THREE.Mesh(sideStripeGeometry, stripeMaterial);
+  stripe4.position.set(-2.51, 1, 0);
+  houseGroup.add(stripe4);
+  
+  // Окна
+  const windowGeometry = new THREE.PlaneGeometry(1.5, 1);
+  const windowMaterial = new THREE.MeshStandardMaterial({
+    color: 0xd0d3d4,
+    roughness: 0.2,
+    transparent: true,
+    opacity: 0.7,
+    side: THREE.DoubleSide
+  });
+  
+  // Окна на боковых сторонах
+  const window1 = new THREE.Mesh(windowGeometry, windowMaterial);
+  window1.position.set(2.51, 2, 1);
+  window1.rotation.y = Math.PI / 2;
+  houseGroup.add(window1);
+  
+  const window2 = new THREE.Mesh(windowGeometry, windowMaterial);
+  window2.position.set(2.51, 2, -1);
+  window2.rotation.y = Math.PI / 2;
+  houseGroup.add(window2);
+  
+  const window3 = new THREE.Mesh(windowGeometry, windowMaterial);
+  window3.position.set(-2.51, 2, 1);
+  window3.rotation.y = Math.PI / 2;
+  houseGroup.add(window3);
+  
+  const window4 = new THREE.Mesh(windowGeometry, windowMaterial);
+  window4.position.set(-2.51, 2, -1);
+  window4.rotation.y = Math.PI / 2;
+  houseGroup.add(window4);
+  
+  // Большая вывеска на крыше
+  const signGeometry = new THREE.BoxGeometry(4, 1, 0.2);
+  const signMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff9800, // Оранжевый
+    roughness: 0.5
+  });
+  
+  const sign = new THREE.Mesh(signGeometry, signMaterial);
+  sign.position.set(0, 4.5, 0);
+  houseGroup.add(sign);
+  
+  // Флаги
+  const flagPoleGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8);
+  const flagPoleMaterial = new THREE.MeshStandardMaterial({
+    color: 0xc0c0c0
+  });
+  
+  const flagPole = new THREE.Mesh(flagPoleGeometry, flagPoleMaterial);
+  flagPole.position.set(0, 5.5, 0);
+  houseGroup.add(flagPole);
+  
+  const flagGeometry = new THREE.PlaneGeometry(0.8, 0.5);
+  const flagMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff0000, // Красный
+    side: THREE.DoubleSide
+  });
+  
+  const flag = new THREE.Mesh(flagGeometry, flagMaterial);
+  flag.position.set(0.4, 5.7, 0);
+  flag.rotation.y = Math.PI / 2;
+  houseGroup.add(flag);
+  
+  return houseGroup;
+}
+
+// Добавьте эту функцию в ваш класс
+spawnHouseAtCurrentPosition() {
+  // Создаем новый домик
+  const newHouse = this.createSimpleHouse();
+  
+  // Устанавливаем позицию на текущую позицию автомобиля
+  newHouse.position.copy(this.car.position);
+  
+  // Случайный поворот для разнообразия
+  newHouse.rotation.y = Math.random() * Math.PI * 2;
+  
+  // Добавляем в сцену
+  this.scene.add(newHouse);
+  
+  // Сохраняем информацию об объекте
+  this.placedObjects.push({
+    type: 'house',
+    position: {
+      x: newHouse.position.x,
+      y: newHouse.position.y,
+      z: newHouse.position.z
+    },
+    rotation: {
+      y: newHouse.rotation.y
+    }
+  });
+  
+  console.log(`Домик создан на позиции: x=${newHouse.position.x.toFixed(2)}, y=${newHouse.position.y.toFixed(2)}, z=${newHouse.position.z.toFixed(2)}`);
+}
+
+// Функция для создания горы на текущей позиции
+spawnMountainAtCurrentPosition() {
+  // Клонируем существующую гору
+  const newMountain = this.mountain.clone();
+  
+  // Устанавливаем позицию на текущую позицию автомобиля
+  newMountain.position.copy(this.car.position);
+  
+  // Случайный поворот для разнообразия
+  newMountain.rotation.y = Math.random() * Math.PI * 2;
+  
+  // Добавляем в сцену
+  this.scene.add(newMountain);
+  
+  // Сохраняем информацию об объекте
+  this.placedObjects.push({
+    type: 'mountain',
+    position: {
+      x: newMountain.position.x,
+      y: newMountain.position.y,
+      z: newMountain.position.z
+    },
+    rotation: {
+      y: newMountain.rotation.y
+    }
+  });
+  
+  console.log(`Гора создана на позиции: x=${newMountain.position.x.toFixed(2)}, y=${newMountain.position.y.toFixed(2)}, z=${newMountain.position.z.toFixed(2)}`);
+}
+
+// Функция для вывода данных о всей сцене в консоль
+logSceneData() {
+  console.log("=== ДАННЫЕ О РАЗМЕЩЕННЫХ ОБЪЕКТАХ ===");
+  console.log(JSON.stringify(this.placedObjects, null, 2));
+  console.log("Скопируйте этот JSON и отправьте его для генерации сцены");
+  
+  // Создаем строку для генерации кода
+  let codeString = `
+// Код для генерации сцены
+function generateScene() {
+  const sceneData = ${JSON.stringify(this.placedObjects, null, 2)};
+  
+  sceneData.forEach(obj => {
+    if (obj.type === 'mountain') {
+      const mountain = this.mountain.clone();
+      mountain.position.set(obj.position.x, obj.position.y, obj.position.z);
+      mountain.rotation.y = obj.rotation.y;
+      this.scene.add(mountain);
+    } else if (obj.type === 'bush') {
+      const bush = this.woodenBush.clone();
+      bush.position.set(obj.position.x, obj.position.y, obj.position.z);
+      bush.rotation.y = obj.rotation.y;
+      this.scene.add(bush);
+    }
+  });
+}`;
+  
+  console.log("=== КОД ДЛЯ ГЕНЕРАЦИИ СЦЕНЫ ===");
+  console.log(codeString);
+}
+
+// Добавьте эту функцию в ваш класс
+spawnBushAtCurrentPosition() {
+  // Клонируем существующий куст
+  const newBush = this.woodenBush.clone();
+  
+  // Устанавливаем позицию на текущую позицию автомобиля
+  newBush.position.copy(this.car.position);
+  
+  // Случайный поворот для разнообразия
+  newBush.rotation.y = Math.random() * Math.PI * 2;
+  
+  // Добавляем в сцену
+  this.scene.add(newBush);
+  
+  // Сохраняем информацию об объекте
+  this.placedObjects.push({
+    type: 'bush',
+    position: {
+      x: newBush.position.x,
+      y: newBush.position.y,
+      z: newBush.position.z
+    },
+    rotation: {
+      y: newBush.rotation.y
+    }
+  });
+  
+  console.log(`Куст создан на позиции: x=${newBush.position.x.toFixed(2)}, y=${newBush.position.y.toFixed(2)}, z=${newBush.position.z.toFixed(2)}`);
+}
+
+initObjectSpawner() {
+  // Обработчик для клавиш J, K и L
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "KeyJ") {
+      // Создаем гору на текущей позиции автомобиля
+      this.spawnMountainAtCurrentPosition();
+      
+      // Собираем данные о всех объектах сцены
+      this.logSceneData();
+    }
+    else if (e.code === "KeyK") {
+      // Создаем куст на текущей позиции автомобиля
+      this.spawnBushAtCurrentPosition();
+      
+      // Собираем данные о всех объектах сцены
+      this.logSceneData();
+    }
+    else if (e.code === "KeyL") {
+      // Создаем домик на текущей позиции автомобиля
+      this.spawnHouseAtCurrentPosition();
+      
+      // Собираем данные о всех объектах сцены
+      this.logSceneData();
+    }
+  });
+  
+  // Массив для хранения информации о размещенных объектах
+  this.placedObjects = [];
+}
+
+//-----------------------------------------------------------------------------------------------------------------
 
   initLODSystem() {
     this.frustum = new THREE.Frustum();
