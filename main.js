@@ -321,7 +321,7 @@ class ThreeJSTemplate {
       const carColor = 0xf7b731; // Яркий золотисто-желтый цвет вместо красного
       
       // Создаем основной корпус машины
-      const bodyGeometry = new THREE.BoxGeometry(1, 0.2, 2);
+      const bodyGeometry = new THREE.BoxGeometry(1, 0.25, 2);
       const bodyMaterial = new THREE.MeshStandardMaterial({ 
           color: carColor,
           metalness: 0.7,
@@ -335,13 +335,13 @@ class ThreeJSTemplate {
       // Добавляем крышу (более низкую, как у Ламборгини)
       const roofGeometry = new THREE.BoxGeometry(0.8, 0.25, 0.9);
       const roofMaterial = new THREE.MeshStandardMaterial({ 
-          color: carColor,
+          color: 0x000000,
           metalness: 0.7,
           roughness: 0.3,
       });
       const roof = new THREE.Mesh(roofGeometry, roofMaterial);
       roof.position.y = 0.4;
-      roof.position.z = -0.3;
+      roof.position.z = -0.05;
       roof.rotation.x = Math.PI / 2 - 105;
       this.car.add(roof);
       
@@ -821,13 +821,27 @@ class ThreeJSTemplate {
     }
 
 //-------------------------------------------------------------------------------------------
-    initSimpleToys() {
-        // Создание простой горы
-        this.createSimpleMountain();
 
-        // Создание простого куста
-        this.createSimpleBush();
-    }
+// Загрузка JSON из файла
+loadMountainsFromFile(filePath) {
+  fetch(filePath)
+      .then(response => response.json())
+      .then(data => {
+          this.initMountainsFromJSON(data);
+      })
+      .catch(error => {
+          console.error("Ошибка загрузки JSON:", error);
+      });
+}
+
+initSimpleToys() {
+  // Загрузка гор из JSON-файла
+  this.loadMountainsFromFile('/coords.json');
+  this.createSimpleMountain();
+  
+  // Создание простого куста
+  this.createSimpleBush();
+}
 
     createSimpleMountain() {
         const mountainGroup = new THREE.Group();
@@ -916,10 +930,6 @@ class ThreeJSTemplate {
             mountainGroup.add(rock);
         }
 
-        // Позиционируем горный массив
-        mountainGroup.position.set(5, 0, 0);
-
-        this.scene.add(mountainGroup);
         this.mountain = mountainGroup;
     }
     createSimpleBush() {
@@ -984,6 +994,134 @@ class ThreeJSTemplate {
         this.scene.add(bushGroup);
         this.woodenBush = bushGroup;
     }
+
+    initMountainsFromJSON(sceneData) {
+      // Проверяем, что данные существуют
+      if (!sceneData || !Array.isArray(sceneData)) {
+          console.error("Неверный формат данных сцены");
+          return;
+      }
+      
+      // Перебираем все объекты из JSON
+      sceneData.forEach(objectData => {
+          if (objectData.type === "mountain") {
+              // Создаем гору
+              const mountainGroup = this.createMountainObject();
+              
+              // Устанавливаем позицию из JSON
+              mountainGroup.position.set(
+                  objectData.position.x,
+                  objectData.position.y,
+                  objectData.position.z
+              );
+              
+              // Устанавливаем поворот из JSON (если есть)
+              if (objectData.rotation) {
+                  mountainGroup.rotation.y = objectData.rotation.y;
+              }
+              
+              // Добавляем в сцену
+              this.scene.add(mountainGroup);
+              
+              // Добавляем в массив размещенных объектов для отслеживания
+              this.placedObjects.push({
+                  type: "mountain",
+                  object: mountainGroup,
+                  position: { ...objectData.position },
+                  rotation: { ...objectData.rotation }
+              });
+          }
+      });
+  }
+  
+  // Вспомогательная функция для создания объекта горы
+  createMountainObject() {
+      const mountainGroup = new THREE.Group();
+  
+      // Основная часть горы - более сглаженная и естественная форма
+      const mountainGeometry = new THREE.ConeGeometry(4, 7, 8);
+  
+      // Материал для горы с имитацией текстуры камня
+      const mountainMaterial = new THREE.MeshStandardMaterial({
+          color: 0x696969, // Темно-серый цвет для горы
+          roughness: 0.9,
+          flatShading: true // Для создания граненой поверхности
+      });
+  
+      const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
+      mountainGroup.add(mountain);
+  
+      // Добавляем вторую, меньшую гору рядом для создания горного массива
+      const smallerMountainGeometry = new THREE.ConeGeometry(8, 12, 8);
+      const smallerMountain = new THREE.Mesh(smallerMountainGeometry, mountainMaterial.clone());
+      smallerMountain.position.set(2.5, 0, 1.5);
+      mountainGroup.add(smallerMountain);
+  
+      // Добавляем третью, еще меньшую гору
+      const smallestMountainGeometry = new THREE.ConeGeometry(6, 8, 6);
+      const smallestMountain = new THREE.Mesh(smallestMountainGeometry, mountainMaterial.clone());
+      smallestMountain.position.set(-2, 0, -1.5);
+      mountainGroup.add(smallestMountain);
+  
+      // Добавляем снежные шапки на вершины гор
+      const snowMaterial = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          roughness: 0.5
+      });
+  
+      // Снежная шапка для основной горы
+      const mainSnowCapGeometry = new THREE.ConeGeometry(1.5, 6, 4);
+      const mainSnowCap = new THREE.Mesh(mainSnowCapGeometry, snowMaterial);
+      mainSnowCap.position.y = 3.5;
+      mountainGroup.add(mainSnowCap);
+  
+      // Снежная шапка для второй горы
+      const smallerSnowCapGeometry = new THREE.ConeGeometry(1.1, 6, 4);
+      const smallerSnowCap = new THREE.Mesh(smallerSnowCapGeometry, snowMaterial);
+      smallerSnowCap.position.set(2.5, 2.5, 1.5);
+      mountainGroup.add(smallerSnowCap);
+  
+      // Снежная шапка для третьей горы
+      const smallestSnowCapGeometry = new THREE.ConeGeometry(0.8, 0.8, 8);
+      const smallestSnowCap = new THREE.Mesh(smallestSnowCapGeometry, snowMaterial);
+      smallestSnowCap.position.set(-2, 0, -1.5);
+      mountainGroup.add(smallestSnowCap);
+  
+      // Добавляем "каменистость" у основания гор
+      for (let i = 0; i < 12; i++) {
+          const rockSize = 0.5 + Math.random() * 0.8;
+          const rockGeometry = new THREE.DodecahedronGeometry(rockSize, 0);
+          const rockMaterial = mountainMaterial.clone();
+          rockMaterial.color.offsetHSL(0, 0, (Math.random() * 0.2) - 0.1);
+  
+          const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+  
+          // Размещаем камни вокруг основания гор
+          const angle = (i / 12) * Math.PI * 2;
+          const radius = 4 + Math.random() * 2;
+          rock.position.set(
+              Math.cos(angle) * radius,
+              rockSize * 0.5 - 0.2,
+              Math.sin(angle) * radius
+          );
+  
+          rock.rotation.set(
+              Math.random() * Math.PI,
+              Math.random() * Math.PI,
+              Math.random() * Math.PI
+          );
+  
+          rock.scale.set(
+              1 + (Math.random() * 0.4 - 0.2),
+              1 + (Math.random() * 0.4 - 0.2),
+              1 + (Math.random() * 0.4 - 0.2)
+          );
+  
+          mountainGroup.add(rock);
+      }
+  
+      return mountainGroup;
+  }
 //------------------------------------------------------------------
 
 // Добавьте эту функцию в ваш класс
