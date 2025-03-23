@@ -23,8 +23,52 @@ class ThreeJSTemplate {
         this.addSlimeVideo();
         this.initSky();
         this.initClouds();
+        this.initBot();
+        this.initScreamAudio();
+    }
+    initBot() {
+        this.bot = new THREE.Group();
+        const botTexture = new THREE.TextureLoader().load("/image.jpg");
+        const botMaterial = new THREE.MeshBasicMaterial({
+            map: botTexture,
+            transparent: true,
+            opacity: 0.9,  // Increase opacity for better visibility
+            color: 0xff0000  // Change color to red for more noticeability
+        });
+        const botMesh = new THREE.Mesh(new THREE.PlaneGeometry(5, 5), botMaterial); // Increased size
+        botMesh.scale.set(3, 3, 3); // Scale up the bot to be wider
+        this.bot.add(botMesh);
+
+        this.bot.position.set(Math.random() * 20 - 10, 0, Math.random() * 20 - 10);
+        this.scene.add(this.bot);
     }
 
+    initScreamAudio() {
+        const listener = new THREE.AudioListener();
+        this.camera.add(listener);
+
+        this.screamAudio = new THREE.Audio(listener);
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load('/audio.mp3', (buffer) => {
+            this.screamAudio.setBuffer(buffer);
+            this.screamAudio.setLoop(false);
+            this.screamAudio.setVolume(0.5);
+        });
+    }
+
+    updateBot() {
+        if (!this.bot || !this.car) return;
+
+        const speed = 0.13;
+        const direction = new THREE.Vector3();
+        direction.subVectors(this.car.position, this.bot.position).normalize();
+        this.bot.position.addScaledVector(direction, speed);
+
+        const distance = this.bot.position.distanceTo(this.car.position);
+        if (distance < 2 && !this.screamAudio.isPlaying) {
+            this.screamAudio.play();
+        }
+    }
     initSky() {
         const skyGeometry = new THREE.SphereGeometry(100, 32, 32);
 
@@ -1472,6 +1516,7 @@ function generateScene() {
         if (this.deltaAccumulator >= this.frameTime) {
             this.updateVisibilitySystem();
             this.updateVisibleObjects();
+            this.updateBot();
             this.deltaAccumulator %= this.frameTime;
             this.renderer.render(this.scene, this.camera);
         }
