@@ -112,7 +112,7 @@ class ThreeJSTemplate {
     initBotAheno() {
         this.botAheno = new THREE.Group();
 
-        const botTexture = new THREE.TextureLoader().load("/image.jpg");
+        const botTexture = new THREE.TextureLoader().load("/eblan2.jpg");
         const botMaterial = new THREE.MeshStandardMaterial({
             map: botTexture,
             transparent: true,
@@ -183,51 +183,127 @@ class ThreeJSTemplate {
 
         this.setRandomPatrolTargetBiba();
     }
-    // initBotBoba() {
-    //     this.botBoba = new THREE.Group();
-    //
-    //     const botTexture = new THREE.TextureLoader().load("/eblan2.jpg");
-    //     const botMaterial = new THREE.MeshStandardMaterial({
-    //         map: botTexture,
-    //         transparent: true,
-    //         opacity: 0.9,
-    //         metalness: 0.2,
-    //         roughness: 0.8
-    //     });
-    //
-    //     const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
-    //     botMesh.castShadow = true;
-    //     botMesh.receiveShadow = true;
-    //
-    //     this.botBiba.add(botMesh);
-    //
-    //     const mapSize = 10;
-    //     const edgeOffset = 30;
-    //
-    //     // Spawn botBiba at a different random edge
-    //     let xBoba, zBoba;
-    //     do {
-    //         xBoba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
-    //         zBoba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
-    //     } while (xBoba === this.botAheno.position.x && zBoba === this.botAheno.position.z);
-    //
-    //     this.botBiba.position.set(xBoba, 2, zBoba);
-    //     this.scene.add(this.botBiba);
-    //
-    //     this.visionRadiusBiba = 10;
-    //     this.isChasingBiba = false;
-    //     this.chaseTimeBiba = 0;
-    //     this.maxChaseTimeBiba = 10 * 60;
-    //
-    //     this.setRandomPatrolTargetBoba();
-    // }
-    // setRandomPatrolTargetBoba() {
-    //     this.patrolTargetBoba = new THREE.Vector3(
-    //         Math.random() * 100 - 50,
-    //         0,
-    //         Math.random() * 100 - 50
-    //     );
-    // }
+    initBotBoba() {
+      this.botBoba = new THREE.Group();
+  
+      const botTexture = new THREE.TextureLoader().load("/eblan2.jpg");
+      const botMaterial = new THREE.MeshStandardMaterial({
+          map: botTexture,
+          transparent: true,
+          opacity: 0.9,
+          metalness: 0.2,
+          roughness: 0.8
+      });
+  
+      const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
+      botMesh.castShadow = true;
+      botMesh.receiveShadow = true;
+  
+      this.botBoba.add(botMesh);
+  
+      const mapSize = 100; // Увеличил размер карты для лучшего распределения
+      const edgeOffset = 5;
+  
+      // Spawn botBoba at a different random edge
+      let xBoba, zBoba;
+      do {
+          xBoba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+          zBoba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+      } while (this.botAheno && xBoba === this.botAheno.position.x && zBoba === this.botAheno.position.z);
+  
+      this.botBoba.position.set(xBoba, 2, zBoba);
+      this.scene.add(this.botBoba);
+  
+      this.visionRadiusBoba = 20; // Увеличил радиус обзора
+      this.isChasingBoba = false;
+      this.chaseTimeBoba = 0;
+      this.maxChaseTimeBoba = 10 * 60;
+  
+      this.setRandomPatrolTargetBoba();
+  }
+  
+  setRandomPatrolTargetBoba() {
+      this.patrolTargetBoba = new THREE.Vector3(
+          Math.random() * 100 - 50,
+          0,
+          Math.random() * 100 - 50
+      );
+  }
+  
+  initScreamAudioBoba() {
+      const listener = new THREE.AudioListener();
+      this.camera.add(listener);
+  
+      this.screamAudioBoba = new THREE.Audio(listener);
+      const audioLoader = new THREE.AudioLoader();
+      audioLoader.load('/eblan2.mp3', (buffer) => {
+          this.screamAudioBoba.setBuffer(buffer);
+          this.screamAudioBoba.setLoop(false);
+          this.screamAudioBoba.setVolume(0.5);
+      });
+  }
+  
+  updateBotBoba(deltaTime) {
+      if (!this.botBoba) return;
+      
+      // Проверка расстояния до игрока
+      const distanceToPlayer = this.botBoba.position.distanceTo(this.camera.position);
+      
+      // Если игрок в зоне видимости, начать преследование
+      if (distanceToPlayer < this.visionRadiusBoba) {
+          this.isChasingBoba = true;
+          this.chaseTimeBoba = 0;
+          
+          // Воспроизвести звук, если не воспроизводится
+          if (this.screamAudioBoba && !this.screamAudioBoba.isPlaying) {
+              this.screamAudioBoba.play();
+          }
+      }
+      
+      // Обновление таймера преследования
+      if (this.isChasingBoba) {
+          this.chaseTimeBoba += deltaTime;
+          if (this.chaseTimeBoba > this.maxChaseTimeBoba) {
+              this.isChasingBoba = false;
+              this.setRandomPatrolTargetBoba();
+          }
+      }
+      
+      // Определение цели движения
+      let targetPosition;
+      if (this.isChasingBoba) {
+          // Преследование игрока
+          targetPosition = this.camera.position.clone();
+      } else {
+          // Патрулирование
+          targetPosition = this.patrolTargetBoba;
+          
+          // Если достигли цели патрулирования, установить новую
+          if (this.botBoba.position.distanceTo(this.patrolTargetBoba) < 2) {
+              this.setRandomPatrolTargetBoba();
+          }
+      }
+      
+      // Расчет направления движения
+      const direction = new THREE.Vector3();
+      direction.subVectors(targetPosition, this.botBoba.position).normalize();
+      
+      // Скорость движения (быстрее при преследовании)
+      const speed = this.isChasingBoba ? 0.15 : 0.05;
+      
+      // Обновление позиции
+      this.botBoba.position.x += direction.x * speed;
+      this.botBoba.position.z += direction.z * speed;
+      
+      // Поворот в направлении движения
+      if (direction.length() > 0.01) {
+          this.botBoba.lookAt(
+              this.botBoba.position.x + direction.x,
+              this.botBoba.position.y,
+              this.botBoba.position.z + direction.z
+          );
+      }
+  }
 
     initScreamAudioAheno() {
         const listener = new THREE.AudioListener();
@@ -235,7 +311,7 @@ class ThreeJSTemplate {
 
         this.screamAudioAheno = new THREE.Audio(listener);
         const audioLoader = new THREE.AudioLoader();
-        audioLoader.load('/audio.mp3', (buffer) => {
+        audioLoader.load('/eblan2.mp3', (buffer) => {
             this.screamAudioAheno.setBuffer(buffer);
             this.screamAudioAheno.setLoop(false);
             this.screamAudioAheno.setVolume(0.5);
@@ -257,7 +333,7 @@ class ThreeJSTemplate {
     // initScreamAudioBoba() {
     //     const listener = new THREE.AudioListener();
     //     this.camera.add(listener);
-    //
+    
     //     this.screamAudioBoba = new THREE.Audio(listener);
     //     const audioLoader = new THREE.AudioLoader();
     //     audioLoader.load('/eblan2.mp3', (buffer) => {
