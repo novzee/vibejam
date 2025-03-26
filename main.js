@@ -400,18 +400,7 @@ class ThreeJSTemplate {
     //         }
     //     }
     // }
-        this.initBotAheno();
-        this.initScreamAudioAheno();
-         // this.initBotBoba();
-         // this.initScreamAudioBoba();
-         this.initBotBiba();
-         this.initScreamAudioBiba();
-        this.coins = [];
-        this.coinCount = 40;
-        this.collectedCoins = 0;
-        this.initCoins();
-        this.createCoinCounter();
-    }
+
     initCoins() {
         // Создаем группу монет
         for (let i = 0; i < this.coinCount; i++) {
