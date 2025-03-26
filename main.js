@@ -25,6 +25,7 @@ class ThreeJSTemplate {
         this.initClouds();
         this.initBot();
         this.initScreamAudio();
+        this.initMobileControls();
     }
     initBot() {
       this.bot = new THREE.Group();
@@ -134,10 +135,11 @@ class ThreeJSTemplate {
     }
 
     addParkourVideo() {
+        const isMobile = window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         // Создаем контейнер для видео
         const videoContainer = document.createElement('div');
         videoContainer.style.position = 'fixed';
-        videoContainer.style.bottom = '10px';
+        isMobile ?  videoContainer.style.top = '10px' : videoContainer.style.bottom = '10px';
         videoContainer.style.right = '10px';
         videoContainer.style.width = '25%'; // 1/5 ширины экрана
         videoContainer.style.zIndex = '1000';
@@ -172,10 +174,12 @@ class ThreeJSTemplate {
         document.body.appendChild(videoContainer);
     }
     addSlimeVideo() {
+        const isMobile = window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
         // Создаем контейнер для видео
         const videoContainer = document.createElement('div');
         videoContainer.style.position = 'fixed';
-        videoContainer.style.bottom = '10px';
+        isMobile ? videoContainer.style.top = '10px' :  videoContainer.style.bottom = '10px';
         videoContainer.style.left = '10px';
         videoContainer.style.width = '25%'; // 1/5 ширины экрана
         videoContainer.style.zIndex = '1000';
@@ -211,6 +215,8 @@ class ThreeJSTemplate {
     }
 // Добавьте этот новый метод в класс
     initControlsInfo() {
+        const isMobile = window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) return;
         const controlsInfo = document.createElement('div');
         controlsInfo.style.position = 'absolute';
         controlsInfo.style.top = '10px';
@@ -596,6 +602,144 @@ class ThreeJSTemplate {
       
       this.car.position.x += this.carVelocity.x;
       this.car.position.z += this.carVelocity.z;
+  }
+  initMobileControls() {
+    // Проверяем, является ли устройство мобильным по ширине экрана или user-agent
+    const isMobile = window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (!isMobile) return; // Не создаем кнопки для десктопа
+    
+    // Создаем контейнер для всех кнопок
+    const controlsContainer = document.createElement('div');
+    controlsContainer.style.position = 'fixed';
+    controlsContainer.style.bottom = '20px';
+    controlsContainer.style.left = '0';
+    controlsContainer.style.width = '100%';
+    controlsContainer.style.display = 'flex';
+    controlsContainer.style.justifyContent = 'space-between';
+    controlsContainer.style.zIndex = '1000';
+    document.body.appendChild(controlsContainer);
+    
+    // Создаем левую панель для газа/тормоза (вертикальное расположение)
+    const leftPanel = document.createElement('div');
+    leftPanel.style.display = 'flex';
+    leftPanel.style.flexDirection = 'column'; // Вертикальное расположение
+    leftPanel.style.marginLeft = '20px';
+    controlsContainer.appendChild(leftPanel);
+    
+    // Создаем правую панель для поворотов и ускорения
+    const rightPanel = document.createElement('div');
+    rightPanel.style.display = 'flex';
+    rightPanel.style.paddingTop = '10%';    
+    rightPanel.style.marginRight = '20px';
+    controlsContainer.appendChild(rightPanel);
+    
+    // Функция для создания кнопки
+    const createButton = (text, key, panel) => {
+      const button = document.createElement('div');
+      button.textContent = text;
+      button.style.width = '60px';
+      button.style.height = '60px';
+      button.style.borderRadius = '50%';
+      button.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+      button.style.display = 'flex';
+      button.style.justifyContent = 'center';
+      button.style.alignItems = 'center';
+      button.style.margin = '10px';
+      button.style.fontSize = '24px';
+      button.style.fontWeight = 'bold';
+      button.style.userSelect = 'none';
+      button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+      
+      // Обработчики событий для нажатия
+      button.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        this.keys[key] = true;
+        button.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+        button.style.transform = 'scale(0.95)';
+      });
+      
+      button.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        this.keys[key] = false;
+        button.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+        button.style.transform = 'scale(1)';
+      });
+      
+      panel.appendChild(button);
+      return button;
+    };
+    
+    // Создаем кнопки движения (газ сверху, тормоз снизу) на левой панели
+    createButton('↑', 'KeyW', leftPanel); // Газ (вперед)
+    createButton('↓', 'KeyS', leftPanel); // Тормоз (назад)
+    
+    // Создаем кнопки поворота на правой панели
+    createButton('←', 'KeyA', rightPanel); // Влево
+    createButton('→', 'KeyD', rightPanel); // Вправо
+    
+    // Кнопка ускорения (турбо) на правой панели
+    const turboButton = createButton('⚡', 'ShiftLeft', rightPanel);
+    turboButton.style.backgroundColor = 'rgba(255, 220, 0, 0.5)';
+    
+    // Добавляем кнопку полноэкранного режима
+    const fullscreenButton = document.createElement('div');
+    fullscreenButton.textContent = '⛶';
+    fullscreenButton.style.position = 'fixed';
+    fullscreenButton.style.top = '20px';
+    fullscreenButton.style.right = '20px';
+    fullscreenButton.style.width = '50px';
+    fullscreenButton.style.height = '50px';
+    fullscreenButton.style.borderRadius = '50%';
+    fullscreenButton.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+    fullscreenButton.style.display = 'flex';
+    fullscreenButton.style.justifyContent = 'center';
+    fullscreenButton.style.alignItems = 'center';
+    fullscreenButton.style.fontSize = '24px';
+    fullscreenButton.style.zIndex = '1000';
+    fullscreenButton.style.cursor = 'pointer';
+    fullscreenButton.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+    
+    fullscreenButton.addEventListener('click', () => {
+      this.toggleFullscreen();
+    });
+    
+    document.body.appendChild(fullscreenButton);
+    
+    // Обработчик изменения размера окна
+    window.addEventListener('resize', () => {
+      // Если размер экрана изменился, скрываем или показываем элементы управления
+      if (window.innerWidth < 1024) {
+        controlsContainer.style.display = 'flex';
+        fullscreenButton.style.display = 'flex';
+      } else {
+        controlsContainer.style.display = 'none';
+        fullscreenButton.style.display = 'none';
+      }
+    });
+  }
+  
+  // Метод для переключения полноэкранного режима
+  toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      // Переход в полноэкранный режим
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+      } else if (document.documentElement.webkitRequestFullscreen) { // Safari
+        document.documentElement.webkitRequestFullscreen();
+      } else if (document.documentElement.msRequestFullscreen) { // IE/Edge
+        document.documentElement.msRequestFullscreen();
+      }
+    } else {
+      // Выход из полноэкранного режима
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) { // Safari
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) { // IE/Edge
+        document.msExitFullscreen();
+      }
+    }
   }
   
   // Метод для создания эффекта дыма при дрифте
