@@ -1,5 +1,14 @@
 import "./styles/style.css";
 import * as THREE from "three";
+import img from '/image.jpg';
+import coin1 from '/coin.png'
+import audio1 from '/audio.mp3'
+import eblan1 from '/eblan1.jpg'
+import eblan1mp3 from '/eblan1.mp3'
+import eblan2 from '/eblan2.jpg'
+import eblan2mp3 from '/eblan2.mp3'
+import json from '/coords.json'
+
 
 class ThreeJSTemplate {
     constructor() {
@@ -34,6 +43,7 @@ class ThreeJSTemplate {
         this.collectedCoins = 0;
         this.initCoins();
         this.createCoinCounter();
+        this.initMobileControls();
     }
     initCoins() {
         // Создаем группу монет
@@ -41,7 +51,7 @@ class ThreeJSTemplate {
             const coin = new THREE.Group();
 
             // Текстура монеты
-            const coinTexture = new THREE.TextureLoader().load("/coin.png");
+            const coinTexture = new THREE.TextureLoader().load(coin1);
             const coinMaterial = new THREE.MeshBasicMaterial({
                 map: coinTexture,
                 transparent: true,
@@ -112,7 +122,7 @@ class ThreeJSTemplate {
     initBotAheno() {
         this.botAheno = new THREE.Group();
 
-        const botTexture = new THREE.TextureLoader().load("/image.jpg");
+        const botTexture = new THREE.TextureLoader().load(img);
         const botMaterial = new THREE.MeshStandardMaterial({
             map: botTexture,
             transparent: true,
@@ -148,7 +158,7 @@ class ThreeJSTemplate {
     initBotBiba() {
         this.botBiba = new THREE.Group();
 
-        const botTexture = new THREE.TextureLoader().load("/eblan1.jpg");
+        const botTexture = new THREE.TextureLoader().load(eblan1);
         const botMaterial = new THREE.MeshStandardMaterial({
             map: botTexture,
             transparent: true,
@@ -235,7 +245,7 @@ class ThreeJSTemplate {
 
         this.screamAudioAheno = new THREE.Audio(listener);
         const audioLoader = new THREE.AudioLoader();
-        audioLoader.load('/audio.mp3', (buffer) => {
+        audioLoader.load(audio1, (buffer) => {
             this.screamAudioAheno.setBuffer(buffer);
             this.screamAudioAheno.setLoop(false);
             this.screamAudioAheno.setVolume(0.5);
@@ -248,7 +258,7 @@ class ThreeJSTemplate {
 
         this.screamAudioBiba = new THREE.Audio(listener);
         const audioLoader = new THREE.AudioLoader();
-        audioLoader.load('/eblan1.mp3', (buffer) => {
+        audioLoader.load(eblan1, (buffer) => {
             this.screamAudioBiba.setBuffer(buffer);
             this.screamAudioBiba.setLoop(false);
             this.screamAudioBiba.setVolume(0.5);
@@ -407,7 +417,7 @@ class ThreeJSTemplate {
             const coin = new THREE.Group();
 
             // Текстура монеты
-            const coinTexture = new THREE.TextureLoader().load("/coin.png");
+            const coinTexture = new THREE.TextureLoader().load(coin1);
             const coinMaterial = new THREE.MeshBasicMaterial({
                 map: coinTexture,
                 transparent: true,
@@ -478,7 +488,7 @@ class ThreeJSTemplate {
     initBotAheno() {
         this.botAheno = new THREE.Group();
 
-        const botTexture = new THREE.TextureLoader().load("/eblan2.jpg");
+        const botTexture = new THREE.TextureLoader().load(eblan2);
         const botMaterial = new THREE.MeshStandardMaterial({
             map: botTexture,
             transparent: true,
@@ -514,7 +524,7 @@ class ThreeJSTemplate {
     initBotBiba() {
         this.botBiba = new THREE.Group();
 
-        const botTexture = new THREE.TextureLoader().load("/eblan1.jpg");
+        const botTexture = new THREE.TextureLoader().load(eblan1);
         const botMaterial = new THREE.MeshStandardMaterial({
             map: botTexture,
             transparent: true,
@@ -552,7 +562,7 @@ class ThreeJSTemplate {
     initBotBoba() {
       this.botBoba = new THREE.Group();
   
-      const botTexture = new THREE.TextureLoader().load("/eblan2.jpg");
+      const botTexture = new THREE.TextureLoader().load(eblan2);
       const botMaterial = new THREE.MeshStandardMaterial({
           map: botTexture,
           transparent: true,
@@ -602,7 +612,7 @@ class ThreeJSTemplate {
   
       this.screamAudioBoba = new THREE.Audio(listener);
       const audioLoader = new THREE.AudioLoader();
-      audioLoader.load('/eblan2.mp3', (buffer) => {
+      audioLoader.load(eblan2mp3, (buffer) => {
           this.screamAudioBoba.setBuffer(buffer);
           this.screamAudioBoba.setLoop(false);
           this.screamAudioBoba.setVolume(0.5);
@@ -677,7 +687,7 @@ class ThreeJSTemplate {
 
         this.screamAudioAheno = new THREE.Audio(listener);
         const audioLoader = new THREE.AudioLoader();
-        audioLoader.load('/eblan2.mp3', (buffer) => {
+        audioLoader.load(eblan2mp3, (buffer) => {
             this.screamAudioAheno.setBuffer(buffer);
             this.screamAudioAheno.setLoop(false);
             this.screamAudioAheno.setVolume(0.5);
@@ -690,7 +700,7 @@ class ThreeJSTemplate {
 
         this.screamAudioBiba = new THREE.Audio(listener);
         const audioLoader = new THREE.AudioLoader();
-        audioLoader.load('/eblan1.mp3', (buffer) => {
+        audioLoader.load(eblan1mp3, (buffer) => {
             this.screamAudioBiba.setBuffer(buffer);
             this.screamAudioBiba.setLoop(false);
             this.screamAudioBiba.setVolume(0.5);
@@ -1797,7 +1807,7 @@ loadMountainsFromFile(filePath) {
 
 initSimpleToys() {
   // Загрузка гор из JSON-файла
-  this.loadMountainsFromFile('/coords.json');
+  this.loadMountainsFromFile(json);
   this.createSimpleMountain();
   
   // Создание простого куста
