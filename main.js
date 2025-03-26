@@ -1798,182 +1798,17 @@ loadMountainsFromFile(filePath) {
   fetch(filePath)
       .then(response => response.json())
       .then(data => {
-          this.initMountainsFromJSON(data);
+          this.initMountainsFromJSON(json);
       })
       .catch(error => {
           console.error("Ошибка загрузки JSON:", error);
       });
 }
 
+
+
 initSimpleToys() {
-  // Загрузка гор из JSON-файла
-  this.loadMountainsFromFile(json);
-  this.createSimpleMountain();
-  
-  // Создание простого куста
-  this.createSimpleBush();
-}
-
-    createSimpleMountain() {
-        const mountainGroup = new THREE.Group();
-
-        // Основная часть горы - более сглаженная и естественная форма
-        const mountainGeometry = new THREE.ConeGeometry(4, 7, 8);
-
-        // Материал для горы с имитацией текстуры камня
-        const mountainMaterial = new THREE.MeshStandardMaterial({
-            color: 0x696969, // Темно-серый цвет для горы
-            roughness: 0.9,
-            flatShading: true // Для создания граненой поверхности
-        });
-
-        const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
-        mountainGroup.add(mountain);
-
-        // Добавляем вторую, меньшую гору рядом для создания горного массива
-        const smallerMountainGeometry = new THREE.ConeGeometry(8, 12, 8);
-        const smallerMountain = new THREE.Mesh(smallerMountainGeometry, mountainMaterial.clone());
-        smallerMountain.position.set(2.5, 0, 1.5);
-        mountainGroup.add(smallerMountain);
-
-        // Добавляем третью, еще меньшую гору
-        const smallestMountainGeometry = new THREE.ConeGeometry(6, 8, 6);
-        const smallestMountain = new THREE.Mesh(smallestMountainGeometry, mountainMaterial.clone());
-        smallestMountain.position.set(-2, 0, -1.5);
-        mountainGroup.add(smallestMountain);
-
-        // Добавляем снежные шапки на вершины гор
-        const snowMaterial = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            roughness: 0.5
-        });
-
-        // Снежная шапка для основной горы
-        const mainSnowCapGeometry = new THREE.ConeGeometry(1.5, 6, 4);
-        const mainSnowCap = new THREE.Mesh(mainSnowCapGeometry, snowMaterial);
-        mainSnowCap.position.y = 3.5;
-        mountainGroup.add(mainSnowCap);
-
-        // Снежная шапка для второй горы
-        const smallerSnowCapGeometry = new THREE.ConeGeometry(1.1, 6, 4);
-        const smallerSnowCap = new THREE.Mesh(smallerSnowCapGeometry, snowMaterial);
-        smallerSnowCap.position.set(2.5, 2.5, 1.5);
-        mountainGroup.add(smallerSnowCap);
-
-        // Снежная шапка для третьей горы
-        const smallestSnowCapGeometry = new THREE.ConeGeometry(0.8, 0.8, 8);
-        const smallestSnowCap = new THREE.Mesh(smallestSnowCapGeometry, snowMaterial);
-        smallestSnowCap.position.set(-2, 0, -1.5);
-        mountainGroup.add(smallestSnowCap);
-
-        // Добавляем "каменистость" у основания гор
-        for (let i = 0; i < 12; i++) {
-            const rockSize = 0.5 + Math.random() * 0.8;
-            const rockGeometry = new THREE.DodecahedronGeometry(rockSize, 0); // Используем додекаэдр для имитации камней
-            const rockMaterial = mountainMaterial.clone();
-            rockMaterial.color.offsetHSL(0, 0, (Math.random() * 0.2) - 0.1); // Варьируем яркость
-
-            const rock = new THREE.Mesh(rockGeometry, rockMaterial);
-
-            // Размещаем камни вокруг основания гор
-            const angle = (i / 12) * Math.PI * 2;
-            const radius = 4 + Math.random() * 2;
-            rock.position.set(
-                Math.cos(angle) * radius,
-                rockSize * 0.5 - 0.2, // Слегка погружаем в землю
-                Math.sin(angle) * radius
-            );
-
-            // Случайно поворачиваем камни
-            rock.rotation.set(
-                Math.random() * Math.PI,
-                Math.random() * Math.PI,
-                Math.random() * Math.PI
-            );
-
-            // Случайно масштабируем для большего разнообразия
-            rock.scale.set(
-                1 + (Math.random() * 0.4 - 0.2),
-                1 + (Math.random() * 0.4 - 0.2),
-                1 + (Math.random() * 0.4 - 0.2)
-            );
-
-            mountainGroup.add(rock);
-        }
-
-        this.mountain = mountainGroup;
-    }
-    createSimpleBush() {
-        const bushGroup = new THREE.Group();
-
-        // Ствол - низкий и тонкий
-        const trunkGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.3, 8);
-        const trunkMaterial = new THREE.MeshStandardMaterial({
-            color: 0x8b4513,
-            roughness: 0.8
-        });
-
-        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-        trunk.position.y = 0.15;
-        bushGroup.add(trunk);
-
-        // Создаем "облакоподобную" крону из нескольких сфер
-        const leafMaterial = new THREE.MeshStandardMaterial({
-            color: 0x2e8b57,
-            roughness: 0.7
-        });
-
-        // Расположение сфер для создания эффекта пушистого куста
-        const spherePositions = [
-            { x: 0, y: 0.5, z: 0, radius: 0.7 },
-            { x: 0.5, y: 0.4, z: 0, radius: 0.5 },
-            { x: -0.5, y: 0.4, z: 0, radius: 0.5 },
-            { x: 0, y: 0.4, z: 0.5, radius: 0.5 },
-            { x: 0, y: 0.4, z: -0.5, radius: 0.5 },
-            { x: 0.35, y: 0.35, z: 0.35, radius: 0.4 },
-            { x: -0.35, y: 0.35, z: 0.35, radius: 0.4 },
-            { x: 0.35, y: 0.35, z: -0.35, radius: 0.4 },
-            { x: -0.35, y: 0.35, z: -0.35, radius: 0.4 }
-        ];
-
-        // Используем низкополигональные сферы для лучшей производительности
-        spherePositions.forEach(pos => {
-            // Уменьшаем количество сегментов для оптимизации
-            const sphereGeometry = new THREE.SphereGeometry(pos.radius, 6, 6);
-            const sphere = new THREE.Mesh(sphereGeometry, leafMaterial);
-            sphere.position.set(pos.x, pos.y, pos.z);
-            bushGroup.add(sphere);
-        });
-
-        // Добавляем небольшие вариации цвета для разных частей куста
-        bushGroup.children.forEach((child, index) => {
-            if (index > 0) { // Пропускаем ствол
-                // Клонируем материал для каждой сферы, чтобы они могли иметь немного разные оттенки
-                child.material = leafMaterial.clone();
-                // Слегка варьируем оттенок зеленого
-                const hueOffset = (Math.random() * 0.1) - 0.05;
-                const lightnessOffset = (Math.random() * 0.1) - 0.05;
-                child.material.color.offsetHSL(hueOffset, 0.1, lightnessOffset);
-            }
-        });
-
-        // Немного сплющиваем куст, чтобы он был ближе к земле
-        bushGroup.scale.y = 0.8;
-
-        // Добавляем куст в сцену
-        bushGroup.position.set(-5, 0, 0);
-        this.scene.add(bushGroup);
-        this.woodenBush = bushGroup;
-    }
-
-    initMountainsFromJSON(sceneData) {
-      // Проверяем, что данные существуют
-      if (!sceneData || !Array.isArray(sceneData)) {
-          console.error("Неверный формат данных сцены");
-          return;
-      }
-
-      sceneData = [    
+    let mountainsData = [    
         {
           "type": "mountain",
           "position": {
@@ -2810,7 +2645,171 @@ initSimpleToys() {
             "y": 1.2333078601239067
           }
         }
-    ]
+    ];
+    this.initMountainsFromJSON(mountainsData);
+    this.createSimpleBush();
+  // Создание простого куста
+  this.createSimpleBush();
+}
+
+    createSimpleMountain() {
+        const mountainGroup = new THREE.Group();
+
+        // Основная часть горы - более сглаженная и естественная форма
+        const mountainGeometry = new THREE.ConeGeometry(4, 7, 8);
+
+        // Материал для горы с имитацией текстуры камня
+        const mountainMaterial = new THREE.MeshStandardMaterial({
+            color: 0x696969, // Темно-серый цвет для горы
+            roughness: 0.9,
+            flatShading: true // Для создания граненой поверхности
+        });
+
+        const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
+        mountainGroup.add(mountain);
+
+        // Добавляем вторую, меньшую гору рядом для создания горного массива
+        const smallerMountainGeometry = new THREE.ConeGeometry(8, 12, 8);
+        const smallerMountain = new THREE.Mesh(smallerMountainGeometry, mountainMaterial.clone());
+        smallerMountain.position.set(2.5, 0, 1.5);
+        mountainGroup.add(smallerMountain);
+
+        // Добавляем третью, еще меньшую гору
+        const smallestMountainGeometry = new THREE.ConeGeometry(6, 8, 6);
+        const smallestMountain = new THREE.Mesh(smallestMountainGeometry, mountainMaterial.clone());
+        smallestMountain.position.set(-2, 0, -1.5);
+        mountainGroup.add(smallestMountain);
+
+        // Добавляем снежные шапки на вершины гор
+        const snowMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.5
+        });
+
+        // Снежная шапка для основной горы
+        const mainSnowCapGeometry = new THREE.ConeGeometry(1.5, 6, 4);
+        const mainSnowCap = new THREE.Mesh(mainSnowCapGeometry, snowMaterial);
+        mainSnowCap.position.y = 3.5;
+        mountainGroup.add(mainSnowCap);
+
+        // Снежная шапка для второй горы
+        const smallerSnowCapGeometry = new THREE.ConeGeometry(1.1, 6, 4);
+        const smallerSnowCap = new THREE.Mesh(smallerSnowCapGeometry, snowMaterial);
+        smallerSnowCap.position.set(2.5, 2.5, 1.5);
+        mountainGroup.add(smallerSnowCap);
+
+        // Снежная шапка для третьей горы
+        const smallestSnowCapGeometry = new THREE.ConeGeometry(0.8, 0.8, 8);
+        const smallestSnowCap = new THREE.Mesh(smallestSnowCapGeometry, snowMaterial);
+        smallestSnowCap.position.set(-2, 0, -1.5);
+        mountainGroup.add(smallestSnowCap);
+
+        // Добавляем "каменистость" у основания гор
+        for (let i = 0; i < 12; i++) {
+            const rockSize = 0.5 + Math.random() * 0.8;
+            const rockGeometry = new THREE.DodecahedronGeometry(rockSize, 0); // Используем додекаэдр для имитации камней
+            const rockMaterial = mountainMaterial.clone();
+            rockMaterial.color.offsetHSL(0, 0, (Math.random() * 0.2) - 0.1); // Варьируем яркость
+
+            const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+
+            // Размещаем камни вокруг основания гор
+            const angle = (i / 12) * Math.PI * 2;
+            const radius = 4 + Math.random() * 2;
+            rock.position.set(
+                Math.cos(angle) * radius,
+                rockSize * 0.5 - 0.2, // Слегка погружаем в землю
+                Math.sin(angle) * radius
+            );
+
+            // Случайно поворачиваем камни
+            rock.rotation.set(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                Math.random() * Math.PI
+            );
+
+            // Случайно масштабируем для большего разнообразия
+            rock.scale.set(
+                1 + (Math.random() * 0.4 - 0.2),
+                1 + (Math.random() * 0.4 - 0.2),
+                1 + (Math.random() * 0.4 - 0.2)
+            );
+
+            mountainGroup.add(rock);
+        }
+
+        this.mountain = mountainGroup;
+    }
+    createSimpleBush() {
+        const bushGroup = new THREE.Group();
+
+        // Ствол - низкий и тонкий
+        const trunkGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.3, 8);
+        const trunkMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8b4513,
+            roughness: 0.8
+        });
+
+        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+        trunk.position.y = 0.15;
+        bushGroup.add(trunk);
+
+        // Создаем "облакоподобную" крону из нескольких сфер
+        const leafMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2e8b57,
+            roughness: 0.7
+        });
+
+        // Расположение сфер для создания эффекта пушистого куста
+        const spherePositions = [
+            { x: 0, y: 0.5, z: 0, radius: 0.7 },
+            { x: 0.5, y: 0.4, z: 0, radius: 0.5 },
+            { x: -0.5, y: 0.4, z: 0, radius: 0.5 },
+            { x: 0, y: 0.4, z: 0.5, radius: 0.5 },
+            { x: 0, y: 0.4, z: -0.5, radius: 0.5 },
+            { x: 0.35, y: 0.35, z: 0.35, radius: 0.4 },
+            { x: -0.35, y: 0.35, z: 0.35, radius: 0.4 },
+            { x: 0.35, y: 0.35, z: -0.35, radius: 0.4 },
+            { x: -0.35, y: 0.35, z: -0.35, radius: 0.4 }
+        ];
+
+        // Используем низкополигональные сферы для лучшей производительности
+        spherePositions.forEach(pos => {
+            // Уменьшаем количество сегментов для оптимизации
+            const sphereGeometry = new THREE.SphereGeometry(pos.radius, 6, 6);
+            const sphere = new THREE.Mesh(sphereGeometry, leafMaterial);
+            sphere.position.set(pos.x, pos.y, pos.z);
+            bushGroup.add(sphere);
+        });
+
+        // Добавляем небольшие вариации цвета для разных частей куста
+        bushGroup.children.forEach((child, index) => {
+            if (index > 0) { // Пропускаем ствол
+                // Клонируем материал для каждой сферы, чтобы они могли иметь немного разные оттенки
+                child.material = leafMaterial.clone();
+                // Слегка варьируем оттенок зеленого
+                const hueOffset = (Math.random() * 0.1) - 0.05;
+                const lightnessOffset = (Math.random() * 0.1) - 0.05;
+                child.material.color.offsetHSL(hueOffset, 0.1, lightnessOffset);
+            }
+        });
+
+        // Немного сплющиваем куст, чтобы он был ближе к земле
+        bushGroup.scale.y = 0.8;
+
+        // Добавляем куст в сцену
+        bushGroup.position.set(-5, 0, 0);
+        this.scene.add(bushGroup);
+        this.woodenBush = bushGroup;
+    }
+
+    initMountainsFromJSON(sceneData) {
+      // Проверяем, что данные существуют
+      if (!sceneData || !Array.isArray(sceneData)) {
+          console.error("Неверный формат данных сцены");
+          return;
+      }
       
       // Перебираем все объекты из JSON
       sceneData.forEach(objectData => {
