@@ -23,59 +23,826 @@ class ThreeJSTemplate {
         this.addSlimeVideo();
         this.initSky();
         this.initClouds();
-        this.initBot();
-        this.initScreamAudio();
-        this.initMobileControls();
+        this.initBotAheno();
+        this.initScreamAudioAheno();
+         // this.initBotBoba();
+         // this.initScreamAudioBoba();
+         this.initBotBiba();
+         this.initScreamAudioBiba();
+        this.coins = [];
+        this.coinCount = 40;
+        this.collectedCoins = 0;
+        this.initCoins();
+        this.createCoinCounter();
     }
-    initBot() {
-      this.bot = new THREE.Group();
-      const botTexture = new THREE.TextureLoader().load("/image.jpg");
-      const botMaterial = new THREE.MeshBasicMaterial({
-          map: botTexture,
-          transparent: true,
-          opacity: 0.9,
-          color: 0xff0000
-      });
-      const botMesh = new THREE.Mesh(new THREE.PlaneGeometry(5, 5), botMaterial);
-      botMesh.scale.set(3, 3, 3);
-      this.bot.add(botMesh);
-  
-      this.bot.position.set(Math.random() * 20 - 10, 0, Math.random() * 20 - 10);
-      this.scene.add(this.bot);
-  }
-  
-  updateBot() {
-      if (!this.bot || !this.car) return;
-  
-      // Движение бота к машине
-      const speed = 0.13;
-      const direction = new THREE.Vector3();
-      direction.subVectors(this.car.position, this.bot.position).normalize();
-      this.bot.position.addScaledVector(direction, speed);
-  
-      // Поворот бота к камере
-      this.bot.lookAt(this.camera.position);
-  
-      // Проверка расстояния для звука
-      const distance = this.bot.position.distanceTo(this.car.position);
-      if (distance < 2 && this.screamAudio && !this.screamAudio.isPlaying) {
-          this.screamAudio.play();
-      }
-  }
+    initCoins() {
+        // Создаем группу монет
+        for (let i = 0; i < this.coinCount; i++) {
+            const coin = new THREE.Group();
 
-    initScreamAudio() {
+            // Текстура монеты
+            const coinTexture = new THREE.TextureLoader().load("/coin.png");
+            const coinMaterial = new THREE.MeshBasicMaterial({
+                map: coinTexture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                color: 0xffdf00 // Золотой цвет
+            });
+
+            const coinMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), coinMaterial);
+            coin.add(coinMesh);
+
+            // Случайное размещение монет на карте
+            coin.position.set(
+                Math.random() * 120 - 40,
+                0.5, // Немного над землей
+                Math.random() * 120 - 40
+            );
+
+            this.coins.push({
+                mesh: coin,
+                collected: false
+            });
+
+            this.scene.add(coin);
+        }
+    }
+
+    createCoinCounter() {
+        // Создание счетчика на экране
+        this.coinCounter = document.createElement('div');
+        this.coinCounter.style.position = 'absolute';
+        this.coinCounter.style.top = '20px';
+        this.coinCounter.style.right = '20px';
+        this.coinCounter.style.color = 'white';
+        this.coinCounter.style.background = 'rgba(0, 0, 0, 0.5)';
+        this.coinCounter.style.padding = '10px';
+        this.coinCounter.style.borderRadius = '5px';
+        this.coinCounter.style.fontSize = '24px';
+        this.coinCounter.style.fontFamily = 'Arial';
+        this.coinCounter.textContent = `Монеты: ${this.collectedCoins}/${this.coinCount}`;
+        document.body.appendChild(this.coinCounter);
+    }
+
+    updateCoins() {
+        if (!this.car) return;
+
+        // Обновление монет (вращение и проверка сбора)
+        this.coins.forEach(coin => {
+            if (!coin.collected) {
+                // Вращение монеты для эффекта
+                coin.mesh.rotation.y += 0.02;
+
+                // Проверка столкновения
+                const distance = coin.mesh.position.distanceTo(this.car.position);
+                if (distance < 3) { // Радиус сбора монеты
+                    coin.collected = true;
+                    coin.mesh.visible = false;
+                    this.collectedCoins++;
+                    this.coinCounter.textContent = `Монеты: ${this.collectedCoins}/${this.coinCount}`;
+
+                    // Опционально: звук сбора монеты
+                    if (this.coinSound) {
+                        this.coinSound.play();
+                    }
+                }
+            }
+        });
+    }
+    initBotAheno() {
+        this.botAheno = new THREE.Group();
+
+        const botTexture = new THREE.TextureLoader().load("/image.jpg");
+        const botMaterial = new THREE.MeshStandardMaterial({
+            map: botTexture,
+            transparent: true,
+            opacity: 0.9,
+            metalness: 0.2,
+            roughness: 0.8
+        });
+
+        const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
+        botMesh.castShadow = true;
+        botMesh.receiveShadow = true;
+
+        this.botAheno.add(botMesh);
+
+        const mapSize = 150;
+        const edgeOffset = 30;
+
+        // Spawn botAheno at a random edge
+        const xAheno = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+        const zAheno = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+
+        this.botAheno.position.set(xAheno, 2, zAheno);
+        this.scene.add(this.botAheno);
+
+        this.visionRadiusAheno = 10;
+        this.isChasingAheno = false;
+        this.chaseTimeAheno = 0;
+        this.maxChaseTimeAheno = 10 * 60;
+
+        this.setRandomPatrolTargetAheno();
+    }
+
+    initBotBiba() {
+        this.botBiba = new THREE.Group();
+
+        const botTexture = new THREE.TextureLoader().load("/eblan1.jpg");
+        const botMaterial = new THREE.MeshStandardMaterial({
+            map: botTexture,
+            transparent: true,
+            opacity: 0.9,
+            metalness: 0.2,
+            roughness: 0.8
+        });
+
+        const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
+        botMesh.castShadow = true;
+        botMesh.receiveShadow = true;
+
+        this.botBiba.add(botMesh);
+
+        const mapSize = 150;
+        const edgeOffset = 30;
+
+        // Spawn botBiba at a different random edge
+        let xBiba, zBiba;
+        do {
+            xBiba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+            zBiba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+        } while (xBiba === this.botAheno.position.x && zBiba === this.botAheno.position.z);
+
+        this.botBiba.position.set(xBiba, 2, zBiba);
+        this.scene.add(this.botBiba);
+
+        this.visionRadiusBiba = 10;
+        this.isChasingBiba = false;
+        this.chaseTimeBiba = 0;
+        this.maxChaseTimeBiba = 10 * 60;
+
+        this.setRandomPatrolTargetBiba();
+    }
+    // initBotBoba() {
+    //     this.botBoba = new THREE.Group();
+    //
+    //     const botTexture = new THREE.TextureLoader().load("/eblan2.jpg");
+    //     const botMaterial = new THREE.MeshStandardMaterial({
+    //         map: botTexture,
+    //         transparent: true,
+    //         opacity: 0.9,
+    //         metalness: 0.2,
+    //         roughness: 0.8
+    //     });
+    //
+    //     const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
+    //     botMesh.castShadow = true;
+    //     botMesh.receiveShadow = true;
+    //
+    //     this.botBiba.add(botMesh);
+    //
+    //     const mapSize = 10;
+    //     const edgeOffset = 30;
+    //
+    //     // Spawn botBiba at a different random edge
+    //     let xBoba, zBoba;
+    //     do {
+    //         xBoba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+    //         zBoba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+    //     } while (xBoba === this.botAheno.position.x && zBoba === this.botAheno.position.z);
+    //
+    //     this.botBiba.position.set(xBoba, 2, zBoba);
+    //     this.scene.add(this.botBiba);
+    //
+    //     this.visionRadiusBiba = 10;
+    //     this.isChasingBiba = false;
+    //     this.chaseTimeBiba = 0;
+    //     this.maxChaseTimeBiba = 10 * 60;
+    //
+    //     this.setRandomPatrolTargetBoba();
+    // }
+    // setRandomPatrolTargetBoba() {
+    //     this.patrolTargetBoba = new THREE.Vector3(
+    //         Math.random() * 100 - 50,
+    //         0,
+    //         Math.random() * 100 - 50
+    //     );
+    // }
+
+    initScreamAudioAheno() {
         const listener = new THREE.AudioListener();
         this.camera.add(listener);
 
-        this.screamAudio = new THREE.Audio(listener);
+        this.screamAudioAheno = new THREE.Audio(listener);
         const audioLoader = new THREE.AudioLoader();
         audioLoader.load('/audio.mp3', (buffer) => {
-            this.screamAudio.setBuffer(buffer);
-            this.screamAudio.setLoop(false);
-            this.screamAudio.setVolume(0.5);
+            this.screamAudioAheno.setBuffer(buffer);
+            this.screamAudioAheno.setLoop(false);
+            this.screamAudioAheno.setVolume(0.5);
         });
     }
+
+    initScreamAudioBiba() {
+        const listener = new THREE.AudioListener();
+        this.camera.add(listener);
+
+        this.screamAudioBiba = new THREE.Audio(listener);
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load('/eblan1.mp3', (buffer) => {
+            this.screamAudioBiba.setBuffer(buffer);
+            this.screamAudioBiba.setLoop(false);
+            this.screamAudioBiba.setVolume(0.5);
+        });
+    }
+    // initScreamAudioBoba() {
+    //     const listener = new THREE.AudioListener();
+    //     this.camera.add(listener);
+    //
+    //     this.screamAudioBoba = new THREE.Audio(listener);
+    //     const audioLoader = new THREE.AudioLoader();
+    //     audioLoader.load('/eblan2.mp3', (buffer) => {
+    //         this.screamAudioBoba.setBuffer(buffer);
+    //         this.screamAudioBoba.setLoop(false);
+    //         this.screamAudioBoba.setVolume(0.5);
+    //     });
+    // }
+    setRandomPatrolTargetAheno() {
+        this.patrolTargetAheno = new THREE.Vector3(
+            Math.random() * 100 - 50,
+            0,
+            Math.random() * 100 - 50
+        );
+    }
+
+    setRandomPatrolTargetBiba() {
+        this.patrolTargetBiba = new THREE.Vector3(
+            Math.random() * 100 - 50,
+            0,
+            Math.random() * 100 - 50
+        );
+    }
+
+    updateBotAheno() {
+        if (!this.botAheno || !this.car) return;
+
+        const playerDistance = this.botAheno.position.distanceTo(this.car.position);
+        const speed = this.isChasingAheno ? 0.13 : 0.1;
+
+        if (this.isChasingAheno) {
+            const direction = new THREE.Vector3();
+            direction.subVectors(this.car.position, this.botAheno.position).normalize();
+            this.botAheno.position.addScaledVector(direction, speed);
+
+            this.chaseTimeAheno++;
+
+            if (playerDistance > this.visionRadiusAheno && this.chaseTimeAheno > this.maxChaseTimeAheno) {
+                this.isChasingAheno = false;
+                this.chaseTimeAheno = 0;
+                this.setRandomPatrolTargetAheno();
+            }
+
+            this.screamAudioAheno.setVolume(Math.max(0, 1 - playerDistance / this.visionRadiusAheno));
+            if (!this.screamAudioAheno.isPlaying) {
+                this.screamAudioAheno.play();
+            }
+
+        } else {
+            const direction = new THREE.Vector3();
+            direction.subVectors(this.patrolTargetAheno, this.botAheno.position).normalize();
+            this.botAheno.position.addScaledVector(direction, speed);
+
+            if (this.botAheno.position.distanceTo(this.patrolTargetAheno) < 2) {
+                this.setRandomPatrolTargetAheno();
+            }
+
+            if (playerDistance < this.visionRadiusAheno) {
+                this.isChasingAheno = true;
+                this.chaseTimeAheno = 0;
+            }
+        }
+    }
+
+    updateBotBiba() {
+        if (!this.botBiba || !this.car) return;
+
+        const playerDistance = this.botBiba.position.distanceTo(this.car.position);
+        const speed = this.isChasingBiba ? 0.13 : 0.1;
+
+        if (this.isChasingBiba) {
+            const direction = new THREE.Vector3();
+            direction.subVectors(this.car.position, this.botBiba.position).normalize();
+            this.botBiba.position.addScaledVector(direction, speed);
+
+            this.chaseTimeBiba++;
+
+            if (playerDistance > this.visionRadiusBiba && this.chaseTimeBiba > this.maxChaseTimeBiba) {
+                this.isChasingBiba = false;
+                this.chaseTimeBiba = 0;
+                this.setRandomPatrolTargetBiba();
+            }
+
+            this.screamAudioBiba.setVolume(Math.max(0, 1 - playerDistance / this.visionRadiusBiba));
+            if (!this.screamAudioBiba.isPlaying) {
+                this.screamAudioBiba.play();
+            }
+
+        } else {
+            const direction = new THREE.Vector3();
+            direction.subVectors(this.patrolTargetBiba, this.botBiba.position).normalize();
+            this.botBiba.position.addScaledVector(direction, speed);
+
+            if (this.botBiba.position.distanceTo(this.patrolTargetBiba) < 2) {
+                this.setRandomPatrolTargetBiba();
+            }
+
+            if (playerDistance < this.visionRadiusBiba) {
+                this.isChasingBiba = true;
+                this.chaseTimeBiba = 0;
+            }
+        }
+    }
+    // updateBotBoba() {
+    //     if (!this.botBoba || !this.car) return;
+    //
+    //     const playerDistance = this.botBoba.position.distanceTo(this.car.position);
+    //     const speed = this.isChasingBoba ? 0.13 : 0.1;
+    //
+    //     if (this.isChasingBoba) {
+    //         const direction = new THREE.Vector3();
+    //         direction.subVectors(this.car.position, this.botBoba.position).normalize();
+    //         this.botBoba.position.addScaledVector(direction, speed);
+    //
+    //         this.chaseTimeBoba++;
+    //
+    //         if (playerDistance > this.visionRadiusBoba && this.chaseTimeBoba > this.maxChaseTimeBoba) {
+    //             this.isChasingBoba = false;
+    //             this.chaseTimeBiba = 0;
+    //             this.setRandomPatrolTargetBoba();
+    //         }
+    //
+    //         this.screamAudioBoba.setVolume(Math.max(0, 1 - playerDistance / this.visionRadiusBoba));
+    //         if (!this.screamAudioBoba.isPlaying) {
+    //             this.screamAudioBoba.play();
+    //         }
+    //
+    //     } else {
+    //         const direction = new THREE.Vector3();
+    //         direction.subVectors(this.patrolTargetBoba, this.botBoba.position).normalize();
+    //         this.botBoba.position.addScaledVector(direction, speed);
+    //
+    //         if (this.botBoba.position.distanceTo(this.patrolTargetBoba) < 2) {
+    //             this.setRandomPatrolTargetBiba();
+    //         }
+    //
+    //         if (playerDistance < this.visionRadiusBoba) {
+    //             this.isChasingBoba = true;
+    //             this.chaseTimeBoba = 0;
+    //         }
+    //     }
+    // }
+
+    initCoins() {
+        // Создаем группу монет
+        for (let i = 0; i < this.coinCount; i++) {
+            const coin = new THREE.Group();
+
+            // Текстура монеты
+            const coinTexture = new THREE.TextureLoader().load("/coin.png");
+            const coinMaterial = new THREE.MeshBasicMaterial({
+                map: coinTexture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                color: 0xffdf00 // Золотой цвет
+            });
+
+            const coinMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), coinMaterial);
+            coin.add(coinMesh);
+
+            // Случайное размещение монет на карте
+            coin.position.set(
+                Math.random() * 120 - 40,
+                0.5, // Немного над землей
+                Math.random() * 120 - 40
+            );
+
+            this.coins.push({
+                mesh: coin,
+                collected: false
+            });
+
+            this.scene.add(coin);
+        }
+    }
+
+    createCoinCounter() {
+        // Создание счетчика на экране
+        this.coinCounter = document.createElement('div');
+        this.coinCounter.style.position = 'absolute';
+        this.coinCounter.style.top = '20px';
+        this.coinCounter.style.right = '20px';
+        this.coinCounter.style.color = 'white';
+        this.coinCounter.style.background = 'rgba(0, 0, 0, 0.5)';
+        this.coinCounter.style.padding = '10px';
+        this.coinCounter.style.borderRadius = '5px';
+        this.coinCounter.style.fontSize = '24px';
+        this.coinCounter.style.fontFamily = 'Arial';
+        this.coinCounter.textContent = `Монеты: ${this.collectedCoins}/${this.coinCount}`;
+        document.body.appendChild(this.coinCounter);
+    }
+
+    updateCoins() {
+        if (!this.car) return;
+
+        // Обновление монет (вращение и проверка сбора)
+        this.coins.forEach(coin => {
+            if (!coin.collected) {
+                // Вращение монеты для эффекта
+                coin.mesh.rotation.y += 0.02;
+
+                // Проверка столкновения
+                const distance = coin.mesh.position.distanceTo(this.car.position);
+                if (distance < 3) { // Радиус сбора монеты
+                    coin.collected = true;
+                    coin.mesh.visible = false;
+                    this.collectedCoins++;
+                    this.coinCounter.textContent = `Монеты: ${this.collectedCoins}/${this.coinCount}`;
+
+                    // Опционально: звук сбора монеты
+                    if (this.coinSound) {
+                        this.coinSound.play();
+                    }
+                }
+            }
+        });
+    }
+    initBotAheno() {
+        this.botAheno = new THREE.Group();
+
+        const botTexture = new THREE.TextureLoader().load("/eblan2.jpg");
+        const botMaterial = new THREE.MeshStandardMaterial({
+            map: botTexture,
+            transparent: true,
+            opacity: 0.9,
+            metalness: 0.2,
+            roughness: 0.8
+        });
+
+        const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
+        botMesh.castShadow = true;
+        botMesh.receiveShadow = true;
+
+        this.botAheno.add(botMesh);
+
+        const mapSize = 150;
+        const edgeOffset = 30;
+
+        // Spawn botAheno at a random edge
+        const xAheno = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+        const zAheno = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+
+        this.botAheno.position.set(xAheno, 2, zAheno);
+        this.scene.add(this.botAheno);
+
+        this.visionRadiusAheno = 10;
+        this.isChasingAheno = false;
+        this.chaseTimeAheno = 0;
+        this.maxChaseTimeAheno = 10 * 60;
+
+        this.setRandomPatrolTargetAheno();
+    }
+
+    initBotBiba() {
+        this.botBiba = new THREE.Group();
+
+        const botTexture = new THREE.TextureLoader().load("/eblan1.jpg");
+        const botMaterial = new THREE.MeshStandardMaterial({
+            map: botTexture,
+            transparent: true,
+            opacity: 0.9,
+            metalness: 0.2,
+            roughness: 0.8
+        });
+
+        const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
+        botMesh.castShadow = true;
+        botMesh.receiveShadow = true;
+
+        this.botBiba.add(botMesh);
+
+        const mapSize = 150;
+        const edgeOffset = 30;
+
+        // Spawn botBiba at a different random edge
+        let xBiba, zBiba;
+        do {
+            xBiba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+            zBiba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+        } while (xBiba === this.botAheno.position.x && zBiba === this.botAheno.position.z);
+
+        this.botBiba.position.set(xBiba, 2, zBiba);
+        this.scene.add(this.botBiba);
+
+        this.visionRadiusBiba = 10;
+        this.isChasingBiba = false;
+        this.chaseTimeBiba = 0;
+        this.maxChaseTimeBiba = 10 * 60;
+
+        this.setRandomPatrolTargetBiba();
+    }
+    initBotBoba() {
+      this.botBoba = new THREE.Group();
+  
+      const botTexture = new THREE.TextureLoader().load("/eblan2.jpg");
+      const botMaterial = new THREE.MeshStandardMaterial({
+          map: botTexture,
+          transparent: true,
+          opacity: 0.9,
+          metalness: 0.2,
+          roughness: 0.8
+      });
+  
+      const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
+      botMesh.castShadow = true;
+      botMesh.receiveShadow = true;
+  
+      this.botBoba.add(botMesh);
+  
+      const mapSize = 100; // Увеличил размер карты для лучшего распределения
+      const edgeOffset = 5;
+  
+      // Spawn botBoba at a different random edge
+      let xBoba, zBoba;
+      do {
+          xBoba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+          zBoba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+      } while (this.botAheno && xBoba === this.botAheno.position.x && zBoba === this.botAheno.position.z);
+  
+      this.botBoba.position.set(xBoba, 2, zBoba);
+      this.scene.add(this.botBoba);
+  
+      this.visionRadiusBoba = 20; // Увеличил радиус обзора
+      this.isChasingBoba = false;
+      this.chaseTimeBoba = 0;
+      this.maxChaseTimeBoba = 10 * 60;
+  
+      this.setRandomPatrolTargetBoba();
+  }
+  
+  setRandomPatrolTargetBoba() {
+      this.patrolTargetBoba = new THREE.Vector3(
+          Math.random() * 100 - 50,
+          0,
+          Math.random() * 100 - 50
+      );
+  }
+  
+  initScreamAudioBoba() {
+      const listener = new THREE.AudioListener();
+      this.camera.add(listener);
+  
+      this.screamAudioBoba = new THREE.Audio(listener);
+      const audioLoader = new THREE.AudioLoader();
+      audioLoader.load('/eblan2.mp3', (buffer) => {
+          this.screamAudioBoba.setBuffer(buffer);
+          this.screamAudioBoba.setLoop(false);
+          this.screamAudioBoba.setVolume(0.5);
+      });
+  }
+  
+  updateBotBoba(deltaTime) {
+      if (!this.botBoba) return;
+      
+      // Проверка расстояния до игрока
+      const distanceToPlayer = this.botBoba.position.distanceTo(this.camera.position);
+      
+      // Если игрок в зоне видимости, начать преследование
+      if (distanceToPlayer < this.visionRadiusBoba) {
+          this.isChasingBoba = true;
+          this.chaseTimeBoba = 0;
+          
+          // Воспроизвести звук, если не воспроизводится
+          if (this.screamAudioBoba && !this.screamAudioBoba.isPlaying) {
+              this.screamAudioBoba.play();
+          }
+      }
+      
+      // Обновление таймера преследования
+      if (this.isChasingBoba) {
+          this.chaseTimeBoba += deltaTime;
+          if (this.chaseTimeBoba > this.maxChaseTimeBoba) {
+              this.isChasingBoba = false;
+              this.setRandomPatrolTargetBoba();
+          }
+      }
+      
+      // Определение цели движения
+      let targetPosition;
+      if (this.isChasingBoba) {
+          // Преследование игрока
+          targetPosition = this.camera.position.clone();
+      } else {
+          // Патрулирование
+          targetPosition = this.patrolTargetBoba;
+          
+          // Если достигли цели патрулирования, установить новую
+          if (this.botBoba.position.distanceTo(this.patrolTargetBoba) < 2) {
+              this.setRandomPatrolTargetBoba();
+          }
+      }
+      
+      // Расчет направления движения
+      const direction = new THREE.Vector3();
+      direction.subVectors(targetPosition, this.botBoba.position).normalize();
+      
+      // Скорость движения (быстрее при преследовании)
+      const speed = this.isChasingBoba ? 0.15 : 0.05;
+      
+      // Обновление позиции
+      this.botBoba.position.x += direction.x * speed;
+      this.botBoba.position.z += direction.z * speed;
+      
+      // Поворот в направлении движения
+      if (direction.length() > 0.01) {
+          this.botBoba.lookAt(
+              this.botBoba.position.x + direction.x,
+              this.botBoba.position.y,
+              this.botBoba.position.z + direction.z
+          );
+      }
+  }
+
+    initScreamAudioAheno() {
+        const listener = new THREE.AudioListener();
+        this.camera.add(listener);
+
+        this.screamAudioAheno = new THREE.Audio(listener);
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load('/eblan2.mp3', (buffer) => {
+            this.screamAudioAheno.setBuffer(buffer);
+            this.screamAudioAheno.setLoop(false);
+            this.screamAudioAheno.setVolume(0.5);
+        });
+    }
+
+    initScreamAudioBiba() {
+        const listener = new THREE.AudioListener();
+        this.camera.add(listener);
+
+        this.screamAudioBiba = new THREE.Audio(listener);
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load('/eblan1.mp3', (buffer) => {
+            this.screamAudioBiba.setBuffer(buffer);
+            this.screamAudioBiba.setLoop(false);
+            this.screamAudioBiba.setVolume(0.5);
+        });
+    }
+    // initScreamAudioBoba() {
+    //     const listener = new THREE.AudioListener();
+    //     this.camera.add(listener);
     
+    //     this.screamAudioBoba = new THREE.Audio(listener);
+    //     const audioLoader = new THREE.AudioLoader();
+    //     audioLoader.load('/eblan2.mp3', (buffer) => {
+    //         this.screamAudioBoba.setBuffer(buffer);
+    //         this.screamAudioBoba.setLoop(false);
+    //         this.screamAudioBoba.setVolume(0.5);
+    //     });
+    // }
+    setRandomPatrolTargetAheno() {
+        this.patrolTargetAheno = new THREE.Vector3(
+            Math.random() * 100 - 50,
+            0,
+            Math.random() * 100 - 50
+        );
+    }
+
+    setRandomPatrolTargetBiba() {
+        this.patrolTargetBiba = new THREE.Vector3(
+            Math.random() * 100 - 50,
+            0,
+            Math.random() * 100 - 50
+        );
+    }
+
+    updateBotAheno() {
+        if (!this.botAheno || !this.car) return;
+
+        const playerDistance = this.botAheno.position.distanceTo(this.car.position);
+        const speed = this.isChasingAheno ? 0.13 : 0.1;
+
+        if (this.isChasingAheno) {
+            const direction = new THREE.Vector3();
+            direction.subVectors(this.car.position, this.botAheno.position).normalize();
+            this.botAheno.position.addScaledVector(direction, speed);
+
+            this.chaseTimeAheno++;
+
+            if (playerDistance > this.visionRadiusAheno && this.chaseTimeAheno > this.maxChaseTimeAheno) {
+                this.isChasingAheno = false;
+                this.chaseTimeAheno = 0;
+                this.setRandomPatrolTargetAheno();
+            }
+
+            this.screamAudioAheno.setVolume(Math.max(0, 1 - playerDistance / this.visionRadiusAheno));
+            if (!this.screamAudioAheno.isPlaying) {
+                this.screamAudioAheno.play();
+            }
+
+        } else {
+            const direction = new THREE.Vector3();
+            direction.subVectors(this.patrolTargetAheno, this.botAheno.position).normalize();
+            this.botAheno.position.addScaledVector(direction, speed);
+
+            if (this.botAheno.position.distanceTo(this.patrolTargetAheno) < 2) {
+                this.setRandomPatrolTargetAheno();
+            }
+
+            if (playerDistance < this.visionRadiusAheno) {
+                this.isChasingAheno = true;
+                this.chaseTimeAheno = 0;
+            }
+        }
+    }
+
+    updateBotBiba() {
+        if (!this.botBiba || !this.car) return;
+
+        const playerDistance = this.botBiba.position.distanceTo(this.car.position);
+        const speed = this.isChasingBiba ? 0.13 : 0.1;
+
+        if (this.isChasingBiba) {
+            const direction = new THREE.Vector3();
+            direction.subVectors(this.car.position, this.botBiba.position).normalize();
+            this.botBiba.position.addScaledVector(direction, speed);
+
+            this.chaseTimeBiba++;
+
+            if (playerDistance > this.visionRadiusBiba && this.chaseTimeBiba > this.maxChaseTimeBiba) {
+                this.isChasingBiba = false;
+                this.chaseTimeBiba = 0;
+                this.setRandomPatrolTargetBiba();
+            }
+
+            this.screamAudioBiba.setVolume(Math.max(0, 1 - playerDistance / this.visionRadiusBiba));
+            if (!this.screamAudioBiba.isPlaying) {
+                this.screamAudioBiba.play();
+            }
+
+        } else {
+            const direction = new THREE.Vector3();
+            direction.subVectors(this.patrolTargetBiba, this.botBiba.position).normalize();
+            this.botBiba.position.addScaledVector(direction, speed);
+
+            if (this.botBiba.position.distanceTo(this.patrolTargetBiba) < 2) {
+                this.setRandomPatrolTargetBiba();
+            }
+
+            if (playerDistance < this.visionRadiusBiba) {
+                this.isChasingBiba = true;
+                this.chaseTimeBiba = 0;
+            }
+        }
+    }
+    // updateBotBoba() {
+    //     if (!this.botBoba || !this.car) return;
+    //
+    //     const playerDistance = this.botBoba.position.distanceTo(this.car.position);
+    //     const speed = this.isChasingBoba ? 0.13 : 0.1;
+    //
+    //     if (this.isChasingBoba) {
+    //         const direction = new THREE.Vector3();
+    //         direction.subVectors(this.car.position, this.botBoba.position).normalize();
+    //         this.botBoba.position.addScaledVector(direction, speed);
+    //
+    //         this.chaseTimeBoba++;
+    //
+    //         if (playerDistance > this.visionRadiusBoba && this.chaseTimeBoba > this.maxChaseTimeBoba) {
+    //             this.isChasingBoba = false;
+    //             this.chaseTimeBiba = 0;
+    //             this.setRandomPatrolTargetBoba();
+    //         }
+    //
+    //         this.screamAudioBoba.setVolume(Math.max(0, 1 - playerDistance / this.visionRadiusBoba));
+    //         if (!this.screamAudioBoba.isPlaying) {
+    //             this.screamAudioBoba.play();
+    //         }
+    //
+    //     } else {
+    //         const direction = new THREE.Vector3();
+    //         direction.subVectors(this.patrolTargetBoba, this.botBoba.position).normalize();
+    //         this.botBoba.position.addScaledVector(direction, speed);
+    //
+    //         if (this.botBoba.position.distanceTo(this.patrolTargetBoba) < 2) {
+    //             this.setRandomPatrolTargetBiba();
+    //         }
+    //
+    //         if (playerDistance < this.visionRadiusBoba) {
+    //             this.isChasingBoba = true;
+    //             this.chaseTimeBoba = 0;
+    //         }
+    //     }
+    // }
+
     initSky() {
         const skyGeometry = new THREE.SphereGeometry(100, 32, 32);
 
@@ -1666,7 +2433,10 @@ function generateScene() {
         if (this.deltaAccumulator >= this.frameTime) {
             this.updateVisibilitySystem();
             this.updateVisibleObjects();
-            this.updateBot();
+            this.updateBotAheno();
+             this.updateBotBiba();
+            // this.updateBotBoba();
+            this.updateCoins();
             this.deltaAccumulator %= this.frameTime;
             this.renderer.render(this.scene, this.camera);
         }
