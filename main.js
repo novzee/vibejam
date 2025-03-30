@@ -1009,107 +1009,107 @@ class ThreeJSTemplate {
     }
 
     initTShapeParticles() {
-        this.tShapeParticles = [];
-        const particleCount = 200;
-        const pinkMaterial = new THREE.MeshStandardMaterial({
-            color: 0xff69b4,
-            emissive: 0xff69b4,
-            emissiveIntensity: 0.7,
-            transparent: true,
-            opacity: 0.9
-        });
-        const redMaterial = new THREE.MeshStandardMaterial({
-            color: 0xfa8072,
-            emissive: 0xfa8072,
-            emissiveIntensity: 0.8,
-            transparent: true,
-            opacity: 0.9
-        });
-        const mapSize = 100;
-        for (let i = 0; i < particleCount; i++) {
-            const verticalBar = new THREE.BoxGeometry(0.08, 0.2, 0.08);
-            const horizontalBar = new THREE.BoxGeometry(0.25, 0.08, 0.08);
-            const redTip = new THREE.BoxGeometry(0.08, 0.05, 0.08);
-            const verticalMesh = new THREE.Mesh(verticalBar, pinkMaterial);
-            const horizontalMesh = new THREE.Mesh(horizontalBar, pinkMaterial);
-            const redTipMesh = new THREE.Mesh(redTip, redMaterial);
-            horizontalMesh.position.y = 0.12;
-            redTipMesh.position.y = -0.125;
-            const tShape = new THREE.Group();
-            tShape.add(verticalMesh);
-            tShape.add(horizontalMesh);
-            tShape.add(redTipMesh);
-            const x = Math.random() * mapSize * 2 - mapSize;
-            const y = 0.5 + Math.random() * 5;
-            const z = Math.random() * mapSize * 2 - mapSize;
-            tShape.position.set(x, y, z);
-            tShape.userData = {
-                velocity: new THREE.Vector3(
-                    (Math.random() * 2 - 1) * 0.05,
-                    (Math.random() * 2 - 1) * 0.02,
-                    (Math.random() * 2 - 1) * 0.05
-                ),
-                rotationSpeed: {
-                    x: (Math.random() * 2 - 1) * 0.02,
-                    y: (Math.random() * 2 - 1) * 0.02,
-                    z: (Math.random() * 2 - 1) * 0.02
-                },
-                changeDirectionCounter: 0,
-                changeDirectionTime: 100 + Math.random() * 200,
-                mapBounds: mapSize
-            };
-            this.scene.add(tShape);
-            this.tShapeParticles.push(tShape);
-        }
-    }
-
-    updateTShapeParticles() {
-        const windDirection = new THREE.Vector3();
-        if (Math.abs(this.carSpeed) > 0.02) {
-            windDirection.x = Math.sin(this.car.rotation.y) * this.carSpeed * 0.5;
-            windDirection.z = Math.cos(this.car.rotation.y) * this.carSpeed * 0.5;
-        } else {
-            windDirection.x = 0.01;
-            windDirection.z = 0.01;
-        }
-        this.tShapeParticles.forEach(particle => {
-            particle.rotation.x += particle.userData.rotationSpeed.x;
-            particle.rotation.y += particle.userData.rotationSpeed.y;
-            particle.rotation.z += particle.userData.rotationSpeed.z;
-            particle.userData.changeDirectionCounter++;
-            if (particle.userData.changeDirectionCounter >= particle.userData.changeDirectionTime) {
-                particle.userData.velocity.x += (Math.random() * 2 - 1) * 0.05;
-                particle.userData.velocity.y += (Math.random() * 2 - 1) * 0.02;
-                particle.userData.velocity.z += (Math.random() * 2 - 1) * 0.05;
-                particle.userData.velocity.clampLength(0, 0.1);
-                particle.userData.changeDirectionCounter = 0;
-                particle.userData.changeDirectionTime = 100 + Math.random() * 200;
-            }
-            particle.userData.velocity.x += windDirection.x * 0.01;
-            particle.userData.velocity.z += windDirection.z * 0.01;
-            particle.position.x += particle.userData.velocity.x;
-            particle.position.y += particle.userData.velocity.y;
-            particle.position.z += particle.userData.velocity.z;
-            const bounds = particle.userData.mapBounds;
-            if (particle.position.x > bounds) {
-                particle.position.x = -bounds;
-            } else if (particle.position.x < -bounds) {
-                particle.position.x = bounds;
-            }
-            if (particle.position.z > bounds) {
-                particle.position.z = -bounds;
-            } else if (particle.position.z < -bounds) {
-                particle.position.z = bounds;
-            }
-            if (particle.position.y < 0.5) {
-                particle.position.y = 0.5;
-                particle.userData.velocity.y *= -0.5;
-            } else if (particle.position.y > 10) {
-                particle.position.y = 10;
-                particle.userData.velocity.y *= -0.5;
-            }
-        });
-    }
+      this.tShapeParticles = [];
+      const particleCount = 350; // Увеличил количество с 200 до 350
+      const pinkMaterial = new THREE.MeshStandardMaterial({
+          color: 0xff69b4,
+          emissive: 0xff69b4,
+          emissiveIntensity: 0.7,
+          transparent: true,
+          opacity: 0.9
+      });
+      const redMaterial = new THREE.MeshStandardMaterial({
+          color: 0xfa8072,
+          emissive: 0xfa8072,
+          emissiveIntensity: 0.8,
+          transparent: true,
+          opacity: 0.9
+      });
+      const mapSize = 100;
+      for (let i = 0; i < particleCount; i++) {
+          const verticalBar = new THREE.BoxGeometry(0.08, 0.2, 0.08);
+          const horizontalBar = new THREE.BoxGeometry(0.25, 0.08, 0.08);
+          const redTip = new THREE.BoxGeometry(0.08, 0.05, 0.08);
+          const verticalMesh = new THREE.Mesh(verticalBar, pinkMaterial);
+          const horizontalMesh = new THREE.Mesh(horizontalBar, pinkMaterial);
+          const redTipMesh = new THREE.Mesh(redTip, redMaterial);
+          horizontalMesh.position.y = 0.12;
+          redTipMesh.position.y = -0.125;
+          const tShape = new THREE.Group();
+          tShape.add(verticalMesh);
+          tShape.add(horizontalMesh);
+          tShape.add(redTipMesh);
+          const x = Math.random() * mapSize * 2 - mapSize;
+          const y = 2.5 + Math.random() * 5; // Увеличил начальную высоту с 0.5 до 2.5
+          const z = Math.random() * mapSize * 2 - mapSize;
+          tShape.position.set(x, y, z);
+          tShape.userData = {
+              velocity: new THREE.Vector3(
+                  (Math.random() * 2 - 1) * 0.05,
+                  (Math.random() * 2 - 1) * 0.02,
+                  (Math.random() * 2 - 1) * 0.05
+              ),
+              rotationSpeed: {
+                  x: (Math.random() * 2 - 1) * 0.02,
+                  y: (Math.random() * 2 - 1) * 0.02,
+                  z: (Math.random() * 2 - 1) * 0.02
+              },
+              changeDirectionCounter: 0,
+              changeDirectionTime: 100 + Math.random() * 200,
+              mapBounds: mapSize
+          };
+          this.scene.add(tShape);
+          this.tShapeParticles.push(tShape);
+      }
+  }
+  
+  updateTShapeParticles() {
+      const windDirection = new THREE.Vector3();
+      if (Math.abs(this.carSpeed) > 0.02) {
+          windDirection.x = Math.sin(this.car.rotation.y) * this.carSpeed * 0.5;
+          windDirection.z = Math.cos(this.car.rotation.y) * this.carSpeed * 0.5;
+      } else {
+          windDirection.x = 0.01;
+          windDirection.z = 0.01;
+      }
+      this.tShapeParticles.forEach(particle => {
+          particle.rotation.x += particle.userData.rotationSpeed.x;
+          particle.rotation.y += particle.userData.rotationSpeed.y;
+          particle.rotation.z += particle.userData.rotationSpeed.z;
+          particle.userData.changeDirectionCounter++;
+          if (particle.userData.changeDirectionCounter >= particle.userData.changeDirectionTime) {
+              particle.userData.velocity.x += (Math.random() * 2 - 1) * 0.05;
+              particle.userData.velocity.y += (Math.random() * 2 - 1) * 0.02;
+              particle.userData.velocity.z += (Math.random() * 2 - 1) * 0.05;
+              particle.userData.velocity.clampLength(0, 0.1);
+              particle.userData.changeDirectionCounter = 0;
+              particle.userData.changeDirectionTime = 100 + Math.random() * 200;
+          }
+          particle.userData.velocity.x += windDirection.x * 0.01;
+          particle.userData.velocity.z += windDirection.z * 0.01;
+          particle.position.x += particle.userData.velocity.x;
+          particle.position.y += particle.userData.velocity.y;
+          particle.position.z += particle.userData.velocity.z;
+          const bounds = particle.userData.mapBounds;
+          if (particle.position.x > bounds) {
+              particle.position.x = -bounds;
+          } else if (particle.position.x < -bounds) {
+              particle.position.x = bounds;
+          }
+          if (particle.position.z > bounds) {
+              particle.position.z = -bounds;
+          } else if (particle.position.z < -bounds) {
+              particle.position.z = bounds;
+          }
+          if (particle.position.y < 2.0) { // Увеличил минимальную высоту с 0.5 до 2.0
+              particle.position.y = 2.0;
+              particle.userData.velocity.y *= -0.5;
+          } else if (particle.position.y > 10) {
+              particle.position.y = 10;
+              particle.userData.velocity.y *= -0.5;
+          }
+      });
+  }
 
     initScene() {
         this.scene = new THREE.Scene();
