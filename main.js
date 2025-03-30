@@ -39,9 +39,11 @@ class ThreeJSTemplate {
          this.initBotBiba();
          this.initScreamAudioBiba();
         this.coins = [];
-        this.coinCount = 40;
+        this.coinCount = 42;
         this.collectedCoins = 0;
         this.initCoins();
+        this.walls = [];
+        this.initLabyrinth();
         this.createCoinCounter();
         this.initMobileControls();
     }
@@ -84,13 +86,412 @@ initCoins() {
       this.scene.add(coin);
   }
 }
+initLabyrinth() {
+  this.walls = [];
+  const wallHeight = 4; // Увеличил высоту для лучшей видимости
+  const wallThickness = 1.5; // Увеличил толщину
+  const cellSize = 10; // Размер ячейки лабиринта
+  
+  // Материал для стен - серый и видимый
+  const wallMaterial = new THREE.MeshStandardMaterial({
+      color: 0x888888, // Серый цвет
+      roughness: 0.7,
+      metalness: 0.2
+  });
+  
+  // Макет лабиринта по схеме
+  const maze = [
+      "████████████████████████████",
+      "█        █  █              █",
+      "█  ████  █  █  ███████  █  █",
+      "█  █     █        █  █  █  █",
+      "█  ███████  ████  █  ████  █",
+      "█           █  █           █",
+      "█  ██████████  █  ████  ████",
+      "█  █     █  █     █     █     █",
+      "████  ████  ███████  █  ███████",
+      "█  █  █     █  █     █  █     █",
+      "█  █  ████  █  ███████  █  ████",
+      "█        █              █     █",
+      "█  █  ████  ██████████  █  ████",
+      "█  █     █  █  █     █  █  █  █",
+      "█  ████  █  █  █  ████  █  █  █",
+      "█  █  █        █              █",
+      "█  █  ███████  ███████  ███████",
+      "█     █           █  █     █  █",
+      "████  ████  ████  █  ████  █  █",
+      "█     █     █        █        ",
+      "████████████████████████████  "
+  ];
+  
+  const mazeWidth = maze[0].length;
+  const mazeHeight = maze.length;
+  
+  // Размеры всего лабиринта
+  const totalWidth = mazeWidth * cellSize;
+  const totalHeight = mazeHeight * cellSize;
+  
+  // Смещение для центрирования лабиринта
+  const offsetX = -totalWidth / 2 + cellSize / 2;
+  const offsetZ = -totalHeight / 2 + cellSize / 2;
+  
+  // Функция для создания стены
+  const createWall = (x1, z1, x2, z2) => {
+      const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(z2 - z1, 2));
+      const wallGeometry = new THREE.BoxGeometry(wallThickness, wallHeight, length);
+      const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+      
+      // Размещаем стену между двумя точками
+      wall.position.set((x1 + x2) / 2, wallHeight / 2, (z1 + z2) / 2);
+      
+      // Поворачиваем стену, чтобы она была между точками
+      const angle = Math.atan2(z2 - z1, x2 - x1);
+      wall.rotation.y = angle - Math.PI / 2;
+      
+      this.scene.add(wall);
+      
+      // Добавляем информацию о стене для обнаружения столкновений
+      this.walls.push({
+          mesh: wall,
+          start: new THREE.Vector2(x1, z1),
+          end: new THREE.Vector2(x2, z2),
+          normal: new THREE.Vector2(z2 - z1, x1 - x2).normalize(),
+          length: length
+      });
+  };
+  
+  // Создаем стены по схеме лабиринта
+  for (let row = 0; row < mazeHeight; row++) {
+      for (let col = 0; col < mazeWidth; col++) {
+          if (maze[row][col] === '█') {
+              // Координаты текущей ячейки
+              const x = offsetX + col * cellSize;
+              const z = offsetZ + row * cellSize;
+              
+              // Проверяем соседей, чтобы не создавать лишние стены
+              // Верхняя стена
+              if (row === 0 || maze[row-1][col] !== '█') {
+                  createWall(x - cellSize/2, z - cellSize/2, x + cellSize/2, z - cellSize/2);
+              }
+              
+              // Правая стена
+              if (col === mazeWidth-1 || maze[row][col+1] !== '█') {
+                  createWall(x + cellSize/2, z - cellSize/2, x + cellSize/2, z + cellSize/2);
+              }
+              
+              // Нижняя стена
+              if (row === mazeHeight-1 || maze[row+1][col] !== '█') {
+                  createWall(x - cellSize/2, z + cellSize/2, x + cellSize/2, z + cellSize/2);
+              }
+              
+              // Левая стена
+              if (col === 0 || maze[row][col-1] !== '█') {
+                  createWall(x - cellSize/2, z - cellSize/2, x - cellSize/2, z + cellSize/2);
+              }
+          }
+      }
+  }
+  
+  // Определяем стартовую позицию машины в свободном пространстве
+  // Ищем первую пустую ячейку в лабиринте
+  let startX = 0, startZ = 0;
+  
+  outerLoop:
+  for (let row = 0; row < mazeHeight; row++) {
+      for (let col = 0; col < mazeWidth; col++) {
+          if (maze[row][col] === ' ') {
+              startX = offsetX + col * cellSize;
+              startZ = offsetZ + row * cellSize;
+              break outerLoop;
+          }
+      }
+  }
+  
+  this.carStartPosition = new THREE.Vector3(startX, 0.05, startZ);
+}
 
     createCoinCounter() {
         // Создание счетчика на экране
         this.coinCounter = document.createElement('div');
         this.coinCounter.style.position = 'absolute';
         this.coinCounter.style.top = '20px';
-        this.coinCounter.style.right = '20px';
+        this.coinCounter.style.left = '40%';
+        this.coinCounter.style.color = 'white';
+        this.coinCounter.style.background = 'rgba(0, 0, 0, 0.5)';
+        this.coinCounter.style.padding = '10px';
+        this.coinCounter.style.borderRadius = '5px';
+        this.coinCounter.style.fontSize = '24px';
+        this.coinCounter.style.fontFamily = 'Arial';
+        this.coinCounter.textContent = `Монеты: ${this.collectedCoins}/${this.coinCount}`;
+        document.body.appendChild(this.coinCounter);
+    }
+
+    updateCoins() {
+        if (!this.car) return;
+
+        // Обновление монет (вращение и проверка сбора)
+        this.coins.forEach(coin => {
+            if (!coin.collected) {
+                // Вращение монеты для эффекта
+                coin.mesh.rotation.y += 0.02;
+
+                // Проверка столкновения
+                const distance = coin.mesh.position.distanceTo(this.car.position);
+                if (distance < 3) { // Радиус сбора монеты
+                    coin.collected = true;
+                    coin.mesh.visible = false;
+                    this.collectedCoins++;
+                    this.coinCounter.textContent = `Монеты: ${this.collectedCoins}/${this.coinCount}`;
+
+                    // Опционально: звук сбора монеты
+                    if (this.coinSound) {
+                        this.coinSound.play();
+                    }
+                }
+            }
+        });
+    }
+    //-----------------------------------------------------------------------------------------------------------------------
+
+    //бот раб
+    initBotAheno() {
+        this.botAheno = new THREE.Group();
+
+        const botTexture = new THREE.TextureLoader().load(eblan2);
+        const botMaterial = new THREE.MeshStandardMaterial({
+            map: botTexture,
+            transparent: true,
+            opacity: 0.9,
+            metalness: 0.2,
+            roughness: 0.8
+        });
+
+        const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
+        botMesh.castShadow = true;
+        botMesh.receiveShadow = true;
+
+        this.botAheno.add(botMesh);
+
+        const mapSize = 150;
+        const edgeOffset = 30;
+
+        // Spawn botAheno at a random edge
+        const xAheno = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+        const zAheno = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+
+        this.botAheno.position.set(xAheno, 2, zAheno);
+        this.scene.add(this.botAheno);
+
+        this.visionRadiusAheno = 2200;
+        this.isChasingAheno = false;
+        this.chaseTimeAheno = 0;
+        this.maxChaseTimeAheno = 10 * 60;
+
+        this.setRandomPatrolTargetAheno();
+    }
+
+    initBotBiba() {
+        this.botBiba = new THREE.Group();
+
+        const botTexture = new THREE.TextureLoader().load(eblan1);
+        const botMaterial = new THREE.MeshStandardMaterial({
+            map: botTexture,
+            transparent: true,
+            opacity: 0.9,
+            metalness: 0.2,
+            roughness: 0.8
+        });
+
+        const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
+        botMesh.castShadow = true;
+        botMesh.receiveShadow = true;
+
+        this.botBiba.add(botMesh);
+
+        const mapSize = 150;
+        const edgeOffset = 30;
+
+        // Spawn botBiba at a different random edge
+        let xBiba, zBiba;
+        do {
+            xBiba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+            zBiba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
+        } while (xBiba === this.botAheno.position.x && zBiba === this.botAheno.position.z);
+
+        this.botBiba.position.set(xBiba, 2, zBiba);
+        this.scene.add(this.botBiba);
+
+        this.visionRadiusBiba = 200;
+        this.isChasingBiba = false;
+        this.chaseTimeBiba = 0;
+        this.maxChaseTimeBiba = 10 * 60;
+
+        this.setRandomPatrolTargetBiba();
+    }
+    updateBotAheno() {
+      if (!this.botAheno || !this.car) return;
+
+      const playerDistance = this.botAheno.position.distanceTo(this.car.position);
+      const speed = this.isChasingAheno ? 1.43 : 0.1;
+
+      if (this.isChasingAheno) {
+          const direction = new THREE.Vector3();
+          direction.subVectors(this.car.position, this.botAheno.position).normalize();
+          this.botAheno.position.addScaledVector(direction, speed);
+
+          this.chaseTimeAheno++;
+
+          if (playerDistance > this.visionRadiusAheno && this.chaseTimeAheno > this.maxChaseTimeAheno) {
+              this.isChasingAheno = false;
+              this.chaseTimeAheno = 0;
+              this.setRandomPatrolTargetAheno();
+          }
+
+          this.screamAudioAheno.setVolume(Math.max(0, 1 - playerDistance / this.visionRadiusAheno));
+          if (!this.screamAudioAheno.isPlaying) {
+              this.screamAudioAheno.play();
+          }
+
+      } else {
+          const direction = new THREE.Vector3();
+          direction.subVectors(this.patrolTargetAheno, this.botAheno.position).normalize();
+          this.botAheno.position.addScaledVector(direction, speed);
+
+          if (this.botAheno.position.distanceTo(this.patrolTargetAheno) < 2) {
+              this.setRandomPatrolTargetAheno();
+          }
+
+          if (playerDistance < this.visionRadiusAheno) {
+              this.isChasingAheno = true;
+              this.chaseTimeAheno = 0;
+          }
+      }
+  }
+
+  updateBotBiba() {
+      if (!this.botBiba || !this.car) return;
+
+      const playerDistance = this.botBiba.position.distanceTo(this.car.position);
+      const speed = this.isChasingBiba ? 1.43 : 0.1;
+
+      if (this.isChasingBiba) {
+          const direction = new THREE.Vector3();
+          direction.subVectors(this.car.position, this.botBiba.position).normalize();
+          this.botBiba.position.addScaledVector(direction, speed);
+
+          this.chaseTimeBiba++;
+
+          if (playerDistance > this.visionRadiusBiba && this.chaseTimeBiba > this.maxChaseTimeBiba) {
+              this.isChasingBiba = false;
+              this.chaseTimeBiba = 0;
+              this.setRandomPatrolTargetBiba();
+          }
+
+          this.screamAudioBiba.setVolume(Math.max(0, 1 - playerDistance / this.visionRadiusBiba));
+          if (!this.screamAudioBiba.isPlaying) {
+              this.screamAudioBiba.play();
+          }
+
+      } else {
+          const direction = new THREE.Vector3();
+          direction.subVectors(this.patrolTargetBiba, this.botBiba.position).normalize();
+          this.botBiba.position.addScaledVector(direction, speed);
+
+          if (this.botBiba.position.distanceTo(this.patrolTargetBiba) < 2) {
+              this.setRandomPatrolTargetBiba();
+          }
+
+          if (playerDistance < this.visionRadiusBiba) {
+              this.isChasingBiba = true;
+              this.chaseTimeBiba = 0;
+          }
+      }
+  }
+    //-----------------------------------------------------------------------------------------------------------------------
+
+    initScreamAudioAheno() {
+        const listener = new THREE.AudioListener();
+        this.camera.add(listener);
+
+        this.screamAudioAheno = new THREE.Audio(listener);
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load(audio1, (buffer) => {
+            this.screamAudioAheno.setBuffer(buffer);
+            this.screamAudioAheno.setLoop(false);
+            this.screamAudioAheno.setVolume(0.5);
+        });
+    }
+
+    initScreamAudioBiba() {
+        const listener = new THREE.AudioListener();
+        this.camera.add(listener);
+
+        this.screamAudioBiba = new THREE.Audio(listener);
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load(eblan1, (buffer) => {
+            this.screamAudioBiba.setBuffer(buffer);
+            this.screamAudioBiba.setLoop(false);
+            this.screamAudioBiba.setVolume(0.8);
+        });
+    }
+    
+    setRandomPatrolTargetAheno() {
+        this.patrolTargetAheno = new THREE.Vector3(
+            Math.random() * 100 - 50,
+            0,
+            Math.random() * 100 - 50
+        );
+    }
+
+    setRandomPatrolTargetBiba() {
+        this.patrolTargetBiba = new THREE.Vector3(
+            Math.random() * 100 - 50,
+            0,
+            Math.random() * 100 - 50
+        );
+    }
+
+
+
+    initCoins() {
+        // Создаем группу монет
+        for (let i = 0; i < this.coinCount; i++) {
+            const coin = new THREE.Group();
+
+            // Текстура монеты
+            const coinTexture = new THREE.TextureLoader().load(coin1);
+            const coinMaterial = new THREE.MeshBasicMaterial({
+                map: coinTexture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                color: 0xffdf00 // Золотой цвет
+            });
+
+            const coinMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), coinMaterial);
+            coin.add(coinMesh);
+
+            // Случайное размещение монет на карте
+            coin.position.set(
+                Math.random() * 120 - 40,
+                0.5, // Немного над землей
+                Math.random() * 120 - 40
+            );
+
+            this.coins.push({
+                mesh: coin,
+                collected: false
+            });
+
+            this.scene.add(coin);
+        }
+    }
+
+    createCoinCounter() {
+        // Создание счетчика на экране
+        this.coinCounter = document.createElement('div');
+        this.coinCounter.style.position = 'absolute';
+        this.coinCounter.style.top = '20px';
+        this.coinCounter.style.right = '40%';
         this.coinCounter.style.color = 'white';
         this.coinCounter.style.background = 'rgba(0, 0, 0, 0.5)';
         this.coinCounter.style.padding = '10px';
@@ -154,373 +555,7 @@ initCoins() {
         this.botAheno.position.set(xAheno, 2, zAheno);
         this.scene.add(this.botAheno);
 
-        this.visionRadiusAheno = 10;
-        this.isChasingAheno = false;
-        this.chaseTimeAheno = 0;
-        this.maxChaseTimeAheno = 10 * 60;
-
-        this.setRandomPatrolTargetAheno();
-    }
-
-    initBotBiba() {
-        this.botBiba = new THREE.Group();
-
-        const botTexture = new THREE.TextureLoader().load(eblan1);
-        const botMaterial = new THREE.MeshStandardMaterial({
-            map: botTexture,
-            transparent: true,
-            opacity: 0.9,
-            metalness: 0.2,
-            roughness: 0.8
-        });
-
-        const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
-        botMesh.castShadow = true;
-        botMesh.receiveShadow = true;
-
-        this.botBiba.add(botMesh);
-
-        const mapSize = 150;
-        const edgeOffset = 30;
-
-        // Spawn botBiba at a different random edge
-        let xBiba, zBiba;
-        do {
-            xBiba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
-            zBiba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
-        } while (xBiba === this.botAheno.position.x && zBiba === this.botAheno.position.z);
-
-        this.botBiba.position.set(xBiba, 2, zBiba);
-        this.scene.add(this.botBiba);
-
-        this.visionRadiusBiba = 10;
-        this.isChasingBiba = false;
-        this.chaseTimeBiba = 0;
-        this.maxChaseTimeBiba = 10 * 60;
-
-        this.setRandomPatrolTargetBiba();
-    }
-    // initBotBoba() {
-    //     this.botBoba = new THREE.Group();
-    //
-    //     const botTexture = new THREE.TextureLoader().load("/eblan2.jpg");
-    //     const botMaterial = new THREE.MeshStandardMaterial({
-    //         map: botTexture,
-    //         transparent: true,
-    //         opacity: 0.9,
-    //         metalness: 0.2,
-    //         roughness: 0.8
-    //     });
-    //
-    //     const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
-    //     botMesh.castShadow = true;
-    //     botMesh.receiveShadow = true;
-    //
-    //     this.botBiba.add(botMesh);
-    //
-    //     const mapSize = 10;
-    //     const edgeOffset = 30;
-    //
-    //     // Spawn botBiba at a different random edge
-    //     let xBoba, zBoba;
-    //     do {
-    //         xBoba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
-    //         zBoba = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
-    //     } while (xBoba === this.botAheno.position.x && zBoba === this.botAheno.position.z);
-    //
-    //     this.botBiba.position.set(xBoba, 2, zBoba);
-    //     this.scene.add(this.botBiba);
-    //
-    //     this.visionRadiusBiba = 10;
-    //     this.isChasingBiba = false;
-    //     this.chaseTimeBiba = 0;
-    //     this.maxChaseTimeBiba = 10 * 60;
-    //
-    //     this.setRandomPatrolTargetBoba();
-    // }
-    // setRandomPatrolTargetBoba() {
-    //     this.patrolTargetBoba = new THREE.Vector3(
-    //         Math.random() * 100 - 50,
-    //         0,
-    //         Math.random() * 100 - 50
-    //     );
-    // }
-
-    initScreamAudioAheno() {
-        const listener = new THREE.AudioListener();
-        this.camera.add(listener);
-
-        this.screamAudioAheno = new THREE.Audio(listener);
-        const audioLoader = new THREE.AudioLoader();
-        audioLoader.load(audio1, (buffer) => {
-            this.screamAudioAheno.setBuffer(buffer);
-            this.screamAudioAheno.setLoop(false);
-            this.screamAudioAheno.setVolume(0.5);
-        });
-    }
-
-    initScreamAudioBiba() {
-        const listener = new THREE.AudioListener();
-        this.camera.add(listener);
-
-        this.screamAudioBiba = new THREE.Audio(listener);
-        const audioLoader = new THREE.AudioLoader();
-        audioLoader.load(eblan1, (buffer) => {
-            this.screamAudioBiba.setBuffer(buffer);
-            this.screamAudioBiba.setLoop(false);
-            this.screamAudioBiba.setVolume(0.5);
-        });
-    }
-    // initScreamAudioBoba() {
-    //     const listener = new THREE.AudioListener();
-    //     this.camera.add(listener);
-    //
-    //     this.screamAudioBoba = new THREE.Audio(listener);
-    //     const audioLoader = new THREE.AudioLoader();
-    //     audioLoader.load('/eblan2.mp3', (buffer) => {
-    //         this.screamAudioBoba.setBuffer(buffer);
-    //         this.screamAudioBoba.setLoop(false);
-    //         this.screamAudioBoba.setVolume(0.5);
-    //     });
-    // }
-    setRandomPatrolTargetAheno() {
-        this.patrolTargetAheno = new THREE.Vector3(
-            Math.random() * 100 - 50,
-            0,
-            Math.random() * 100 - 50
-        );
-    }
-
-    setRandomPatrolTargetBiba() {
-        this.patrolTargetBiba = new THREE.Vector3(
-            Math.random() * 100 - 50,
-            0,
-            Math.random() * 100 - 50
-        );
-    }
-
-    updateBotAheno() {
-        if (!this.botAheno || !this.car) return;
-
-        const playerDistance = this.botAheno.position.distanceTo(this.car.position);
-        const speed = this.isChasingAheno ? 0.13 : 0.1;
-
-        if (this.isChasingAheno) {
-            const direction = new THREE.Vector3();
-            direction.subVectors(this.car.position, this.botAheno.position).normalize();
-            this.botAheno.position.addScaledVector(direction, speed);
-
-            this.chaseTimeAheno++;
-
-            if (playerDistance > this.visionRadiusAheno && this.chaseTimeAheno > this.maxChaseTimeAheno) {
-                this.isChasingAheno = false;
-                this.chaseTimeAheno = 0;
-                this.setRandomPatrolTargetAheno();
-            }
-
-            this.screamAudioAheno.setVolume(Math.max(0, 1 - playerDistance / this.visionRadiusAheno));
-            if (!this.screamAudioAheno.isPlaying) {
-                this.screamAudioAheno.play();
-            }
-
-        } else {
-            const direction = new THREE.Vector3();
-            direction.subVectors(this.patrolTargetAheno, this.botAheno.position).normalize();
-            this.botAheno.position.addScaledVector(direction, speed);
-
-            if (this.botAheno.position.distanceTo(this.patrolTargetAheno) < 2) {
-                this.setRandomPatrolTargetAheno();
-            }
-
-            if (playerDistance < this.visionRadiusAheno) {
-                this.isChasingAheno = true;
-                this.chaseTimeAheno = 0;
-            }
-        }
-    }
-
-    updateBotBiba() {
-        if (!this.botBiba || !this.car) return;
-
-        const playerDistance = this.botBiba.position.distanceTo(this.car.position);
-        const speed = this.isChasingBiba ? 0.13 : 0.1;
-
-        if (this.isChasingBiba) {
-            const direction = new THREE.Vector3();
-            direction.subVectors(this.car.position, this.botBiba.position).normalize();
-            this.botBiba.position.addScaledVector(direction, speed);
-
-            this.chaseTimeBiba++;
-
-            if (playerDistance > this.visionRadiusBiba && this.chaseTimeBiba > this.maxChaseTimeBiba) {
-                this.isChasingBiba = false;
-                this.chaseTimeBiba = 0;
-                this.setRandomPatrolTargetBiba();
-            }
-
-            this.screamAudioBiba.setVolume(Math.max(0, 1 - playerDistance / this.visionRadiusBiba));
-            if (!this.screamAudioBiba.isPlaying) {
-                this.screamAudioBiba.play();
-            }
-
-        } else {
-            const direction = new THREE.Vector3();
-            direction.subVectors(this.patrolTargetBiba, this.botBiba.position).normalize();
-            this.botBiba.position.addScaledVector(direction, speed);
-
-            if (this.botBiba.position.distanceTo(this.patrolTargetBiba) < 2) {
-                this.setRandomPatrolTargetBiba();
-            }
-
-            if (playerDistance < this.visionRadiusBiba) {
-                this.isChasingBiba = true;
-                this.chaseTimeBiba = 0;
-            }
-        }
-    }
-    // updateBotBoba() {
-    //     if (!this.botBoba || !this.car) return;
-    //
-    //     const playerDistance = this.botBoba.position.distanceTo(this.car.position);
-    //     const speed = this.isChasingBoba ? 0.13 : 0.1;
-    //
-    //     if (this.isChasingBoba) {
-    //         const direction = new THREE.Vector3();
-    //         direction.subVectors(this.car.position, this.botBoba.position).normalize();
-    //         this.botBoba.position.addScaledVector(direction, speed);
-    //
-    //         this.chaseTimeBoba++;
-    //
-    //         if (playerDistance > this.visionRadiusBoba && this.chaseTimeBoba > this.maxChaseTimeBoba) {
-    //             this.isChasingBoba = false;
-    //             this.chaseTimeBiba = 0;
-    //             this.setRandomPatrolTargetBoba();
-    //         }
-    //
-    //         this.screamAudioBoba.setVolume(Math.max(0, 1 - playerDistance / this.visionRadiusBoba));
-    //         if (!this.screamAudioBoba.isPlaying) {
-    //             this.screamAudioBoba.play();
-    //         }
-    //
-    //     } else {
-    //         const direction = new THREE.Vector3();
-    //         direction.subVectors(this.patrolTargetBoba, this.botBoba.position).normalize();
-    //         this.botBoba.position.addScaledVector(direction, speed);
-    //
-    //         if (this.botBoba.position.distanceTo(this.patrolTargetBoba) < 2) {
-    //             this.setRandomPatrolTargetBiba();
-    //         }
-    //
-    //         if (playerDistance < this.visionRadiusBoba) {
-    //             this.isChasingBoba = true;
-    //             this.chaseTimeBoba = 0;
-    //         }
-    //     }
-    // }
-
-    initCoins() {
-        // Создаем группу монет
-        for (let i = 0; i < this.coinCount; i++) {
-            const coin = new THREE.Group();
-
-            // Текстура монеты
-            const coinTexture = new THREE.TextureLoader().load(coin1);
-            const coinMaterial = new THREE.MeshBasicMaterial({
-                map: coinTexture,
-                transparent: true,
-                side: THREE.DoubleSide,
-                color: 0xffdf00 // Золотой цвет
-            });
-
-            const coinMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), coinMaterial);
-            coin.add(coinMesh);
-
-            // Случайное размещение монет на карте
-            coin.position.set(
-                Math.random() * 120 - 40,
-                0.5, // Немного над землей
-                Math.random() * 120 - 40
-            );
-
-            this.coins.push({
-                mesh: coin,
-                collected: false
-            });
-
-            this.scene.add(coin);
-        }
-    }
-
-    createCoinCounter() {
-        // Создание счетчика на экране
-        this.coinCounter = document.createElement('div');
-        this.coinCounter.style.position = 'absolute';
-        this.coinCounter.style.top = '20px';
-        this.coinCounter.style.right = '20px';
-        this.coinCounter.style.color = 'white';
-        this.coinCounter.style.background = 'rgba(0, 0, 0, 0.5)';
-        this.coinCounter.style.padding = '10px';
-        this.coinCounter.style.borderRadius = '5px';
-        this.coinCounter.style.fontSize = '24px';
-        this.coinCounter.style.fontFamily = 'Arial';
-        this.coinCounter.textContent = `Монеты: ${this.collectedCoins}/${this.coinCount}`;
-        document.body.appendChild(this.coinCounter);
-    }
-
-    updateCoins() {
-        if (!this.car) return;
-
-        // Обновление монет (вращение и проверка сбора)
-        this.coins.forEach(coin => {
-            if (!coin.collected) {
-                // Вращение монеты для эффекта
-                coin.mesh.rotation.y += 0.02;
-
-                // Проверка столкновения
-                const distance = coin.mesh.position.distanceTo(this.car.position);
-                if (distance < 3) { // Радиус сбора монеты
-                    coin.collected = true;
-                    coin.mesh.visible = false;
-                    this.collectedCoins++;
-                    this.coinCounter.textContent = `Монеты: ${this.collectedCoins}/${this.coinCount}`;
-
-                    // Опционально: звук сбора монеты
-                    if (this.coinSound) {
-                        this.coinSound.play();
-                    }
-                }
-            }
-        });
-    }
-    initBotAheno() {
-        this.botAheno = new THREE.Group();
-
-        const botTexture = new THREE.TextureLoader().load(eblan2);
-        const botMaterial = new THREE.MeshStandardMaterial({
-            map: botTexture,
-            transparent: true,
-            opacity: 0.9,
-            metalness: 0.2,
-            roughness: 0.8
-        });
-
-        const botMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), botMaterial);
-        botMesh.castShadow = true;
-        botMesh.receiveShadow = true;
-
-        this.botAheno.add(botMesh);
-
-        const mapSize = 150;
-        const edgeOffset = 30;
-
-        // Spawn botAheno at a random edge
-        const xAheno = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
-        const zAheno = Math.random() < 0.5 ? -(mapSize / 2 - edgeOffset) : (mapSize / 2 - edgeOffset);
-
-        this.botAheno.position.set(xAheno, 2, zAheno);
-        this.scene.add(this.botAheno);
-
-        this.visionRadiusAheno = 10;
+        this.visionRadiusAheno = 20;
         this.isChasingAheno = false;
         this.chaseTimeAheno = 0;
         this.maxChaseTimeAheno = 10 * 60;
@@ -1303,6 +1338,18 @@ initCoins() {
       windshield.rotation.x = -Math.PI / 4;
       windshield.position.set(0, 0.5, 0.25);
       this.car.add(windshield);
+      this.carSpeed = 0;
+      this.carVelocity = new THREE.Vector3(0, 0, 0);
+      this.carDirection = new THREE.Vector3(0, 0, 1);
+      
+      // Добавляем параметры для прыжка
+      this.isJumping = false;
+      this.jumpForce = 0;
+      this.jumpHeight = 0;
+      this.gravity = 0.015;
+      this.maxJumpForce = 0.4;
+      this.jumpCooldown = 0;
+      this.jumpCooldownTime = 50; // Кулдаун между прыжками
       
       this.scene.add(this.car);
       this.carSpeed = 0;
@@ -1316,9 +1363,89 @@ initCoins() {
       this.keys = {};
       window.addEventListener("keydown", (e) => (this.keys[e.code] = true));
       window.addEventListener("keyup", (e) => (this.keys[e.code] = false));
+      window.addEventListener("keydown", (e) => {
+          this.keys[e.code] = true;
+          
+          // Прыжок при нажатии пробела
+          if (e.code === "Space" && !this.isJumping && this.jumpCooldown === 0) {
+              this.isJumping = true;
+              this.jumpForce = this.maxJumpForce;
+              
+              // Добавляем эффект прыжка - машина слегка наклоняется вперед
+              this.car.rotation.x = -0.2;
+          }
+      });
+      window.addEventListener("keyup", (e) => (this.keys[e.code] = false));
   }
   
-// Модифицированная функция updateCar для ограничения движения
+  createLandingSmoke() {
+    // Если у вас уже есть метод createDriftSmoke, можно использовать его с небольшими изменениями
+    // или создать новый метод для дыма при приземлении
+    for (let i = 0; i < 20; i++) {
+        const particle = new THREE.Mesh(
+            new THREE.SphereGeometry(0.1 + Math.random() * 0.2, 8, 8),
+            new THREE.MeshBasicMaterial({
+                color: 0xdddddd,
+                transparent: true,
+                opacity: 0.6
+            })
+        );
+        
+        // Размещаем частицы вокруг машины
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 0.5 + Math.random() * 1;
+        particle.position.set(
+            this.car.position.x + Math.cos(angle) * distance,
+            0.1 + Math.random() * 0.3,
+            this.car.position.z + Math.sin(angle) * distance
+        );
+        
+        // Задаем скорость и направление частиц
+        particle.userData = {
+            velocity: new THREE.Vector3(
+                (Math.random() * 2 - 1) * 0.03,
+                0.03 + Math.random() * 0.05,
+                (Math.random() * 2 - 1) * 0.03
+            ),
+            life: 30 + Math.random() * 30
+        };
+        
+        this.scene.add(particle);
+        this.smokeParticles.push(particle);
+    }
+}
+updateSmokeParticles() {
+  // Обновляем существующие частицы дыма
+  for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
+      const particle = this.smokeParticles[i];
+      
+      // Применяем скорость
+      particle.position.x += particle.userData.velocity.x;
+      particle.position.y += particle.userData.velocity.y;
+      particle.position.z += particle.userData.velocity.z;
+      
+      // Уменьшаем скорость по Y (гравитация)
+      particle.userData.velocity.y -= 0.001;
+      
+      // Увеличиваем размер частиц со временем
+      particle.scale.x += 0.01;
+      particle.scale.y += 0.01;
+      particle.scale.z += 0.01;
+      
+      // Уменьшаем прозрачность
+      particle.material.opacity -= 0.01;
+      
+      // Уменьшаем время жизни
+      particle.userData.life--;
+      
+      // Удаляем частицы, которые исчезли или закончился их срок жизни
+      if (particle.material.opacity <= 0 || particle.userData.life <= 0) {
+          this.scene.remove(particle);
+          this.smokeParticles.splice(i, 1);
+      }
+  }
+}
+// Модифицируйте метод updateCar для обработки прыжка
 updateCar() {
   this.carDirection.set(Math.sin(this.car.rotation.y), 0, Math.cos(this.car.rotation.y));
   let acceleration = 0;
@@ -1334,9 +1461,8 @@ updateCar() {
   
   // Поворачиваем передние колеса при повороте
   if (steering !== 0) {
-      this.frontWheelGroup.rotation.y = steering * 10; // Усиливаем эффект для видимости
+      this.frontWheelGroup.rotation.y = steering * 10;
   } else {
-      // Плавно возвращаем колеса в прямое положение
       this.frontWheelGroup.rotation.y *= 0.8;
   }
   
@@ -1352,187 +1478,329 @@ updateCar() {
       this.isDrifting = false;
   }
   
+  // Уменьшаем управляемость в воздухе при прыжке
+  if (this.isJumping) {
+      steering *= 0.3;
+  }
+  
   this.car.rotation.y += steering * (this.isDrifting ? 1.5 : 1.0);
   
-  // Вращаем колеса при движении с учетом направления
+  // Вращаем колеса при движении
   const wheelRotationSpeed = this.carSpeed * 0.5;
   this.wheels.forEach(wheel => {
       wheel.rotation.x += wheelRotationSpeed;
   });
   
-  // Добавляем небольшую анимацию подвески при движении
-  if (this.carSpeed !== 0) {
-      const bounceAmount = Math.sin(Date.now() * 0.01) * 0.005 * Math.abs(this.carSpeed) * 5;
-      this.car.position.y = bounceAmount + 0.05;
+  // Обновляем кулдаун прыжка
+  if (this.jumpCooldown > 0) {
+      this.jumpCooldown--;
+  }
+  
+  // Обработка прыжка
+  if (this.isJumping) {
+      // Применяем силу прыжка
+      this.jumpHeight += this.jumpForce;
+      this.jumpForce -= this.gravity;
       
-      // Наклоняем машину при разгоне/торможении
-      if (acceleration > 0) {
-          this.car.rotation.x = -0.03 * Math.abs(this.carSpeed) * 3;
-      } else if (acceleration < 0) {
-          this.car.rotation.x = 0.03 * Math.abs(this.carSpeed) * 3;
-      } else {
-          this.car.rotation.x *= 0.9; // Плавно возвращаемся к горизонтальному положению
+      // Если машина приземлилась
+      if (this.jumpHeight <= 0) {
+          this.jumpHeight = 0;
+          this.isJumping = false;
+          this.jumpForce = 0;
+          this.jumpCooldown = this.jumpCooldownTime;
+          
+          // Эффект приземления - машина слегка подпрыгивает и наклоняется
+          this.car.rotation.x = 0.15;
+          
+          // Эффект дыма при приземлении
+          if (Math.abs(this.carSpeed) > 0.05) {
+              this.createLandingSmoke();
+          }
       }
       
-      // Наклоняем машину в сторону поворота
-      if (steering !== 0) {
-          this.car.rotation.z = -steering * Math.abs(this.carSpeed) * 2;
+      // Устанавливаем высоту машины
+      this.car.position.y = this.jumpHeight + 0.05;
+  } else {
+      // Анимация подвески при движении по земле
+      if (this.carSpeed !== 0) {
+          const bounceAmount = Math.sin(Date.now() * 0.01) * 0.005 * Math.abs(this.carSpeed) * 5;
+          this.car.position.y = bounceAmount + 0.05;
+          
+          if (acceleration > 0) {
+              this.car.rotation.x = -0.03 * Math.abs(this.carSpeed) * 3;
+          } else if (acceleration < 0) {
+              this.car.rotation.x = 0.03 * Math.abs(this.carSpeed) * 3;
+          } else {
+              this.car.rotation.x *= 0.9;
+          }
       } else {
-          this.car.rotation.z *= 0.9; // Плавно возвращаемся к вертикальному положению
+          this.car.rotation.x *= 0.9;
       }
+  }
+  
+  if (steering !== 0) {
+      this.car.rotation.z = -steering * Math.abs(this.carSpeed) * 2;
+  } else {
+      this.car.rotation.z *= 0.9;
   }
   
   this.carVelocity.x = this.carVelocity.x * (1 - this.traction) + this.carDirection.x * this.carSpeed * this.traction;
   this.carVelocity.z = this.carVelocity.z * (1 - this.traction) + this.carDirection.z * this.carSpeed * this.traction;
   
-  // Добавляем новые координаты машины
+  // Новые координаты машины
   let newPosX = this.car.position.x + this.carVelocity.x;
   let newPosZ = this.car.position.z + this.carVelocity.z;
   
-  // Проверяем границу круга
-  const skyRadius = 97; // Немного меньше радиуса неба для эффекта столкновения
+  // Проверка границы круга
+  const skyRadius = 97;
   const distanceFromCenter = Math.sqrt(newPosX * newPosX + newPosZ * newPosZ);
   
+  let collision = false;
+  
   if (distanceFromCenter > skyRadius) {
-      // Машина пытается выйти за границу - останавливаем и немного отбрасываем назад
-      // Находим направление от центра к машине
+      // Обработка столкновения с границей круга
       const dirX = newPosX / distanceFromCenter;
       const dirZ = newPosZ / distanceFromCenter;
       
-      // Устанавливаем позицию точно на границе
-      this.car.position.x = dirX * skyRadius * 0.98; // Немного внутрь от границы
+      this.car.position.x = dirX * skyRadius * 0.98;
       this.car.position.z = dirZ * skyRadius * 0.98;
       
-      // Отражаем скорость (эффект отскока)
       const dotProduct = this.carVelocity.x * dirX + this.carVelocity.z * dirZ;
       this.carVelocity.x -= 2 * dotProduct * dirX;
       this.carVelocity.z -= 2 * dotProduct * dirZ;
       
-      // Уменьшаем скорость (эффект трения)
       this.carVelocity.x *= 0.3;
       this.carVelocity.z *= 0.3;
       this.carSpeed *= 0.3;
-  } else {
-      // Если в пределах границы, обновляем позицию как обычно
+      
+      collision = true;
+  }
+  
+  // Проверка столкновения со стенами лабиринта только если машина не в прыжке или высота прыжка ниже высоты стен
+  if (!collision && this.walls && (!this.isJumping || this.jumpHeight < 4.0)) {
+      const carRadius = 1.0; // Примерный радиус машины для обнаружения столкновений
+      
+      for (const wall of this.walls) {
+          // Проверяем, находится ли машина достаточно близко к стене
+          const wallStart = wall.start;
+          const wallEnd = wall.end;
+          
+          // Вектор от начала стены до машины
+          const wallToCarX = newPosX - wallStart.x;
+          const wallToCarZ = newPosZ - wallStart.y;
+          
+          // Вектор стены
+          const wallVectorX = wallEnd.x - wallStart.x;
+          const wallVectorZ = wallEnd.y - wallStart.y;
+          const wallLength = wall.length;
+          
+          // Проекция вектора (машина - начало стены) на вектор стены
+          const projection = (wallToCarX * wallVectorX + wallToCarZ * wallVectorZ) / wallLength;
+          
+          // Ближайшая точка на стене к машине
+          let closestX, closestZ;
+          
+          if (projection <= 0) {
+              // Ближайшая точка - начало стены
+              closestX = wallStart.x;
+              closestZ = wallStart.y;
+          } else if (projection >= wallLength) {
+              // Ближайшая точка - конец стены
+              closestX = wallEnd.x;
+              closestZ = wallEnd.y;
+          } else {
+              // Ближайшая точка - проекция на стену
+              closestX = wallStart.x + (projection / wallLength) * wallVectorX;
+              closestZ = wallStart.y + (projection / wallLength) * wallVectorZ;
+          }
+          
+          // Расстояние от машины до ближайшей точки на стене
+          const distanceToWall = Math.sqrt(
+              Math.pow(newPosX - closestX, 2) + 
+              Math.pow(newPosZ - closestZ, 2)
+          );
+          
+          // Если расстояние меньше суммы радиуса машины и половины толщины стены, 
+          // то произошло столкновение
+          if (distanceToWall < carRadius + 0.5) {
+              // Нормаль к стене (направление отталкивания)
+              const normalX = wall.normal.x;
+              const normalZ = wall.normal.y;
+              
+              // Отталкиваем машину от стены
+              newPosX = closestX + normalX * (carRadius + 0.5);
+              newPosZ = closestZ + normalZ * (carRadius + 0.5);
+              
+              // Отражаем скорость относительно нормали стены
+              const dotProduct = this.carVelocity.x * normalX + this.carVelocity.z * normalZ;
+              this.carVelocity.x -= 2 * dotProduct * normalX;
+              this.carVelocity.z -= 2 * dotProduct * normalZ;
+              
+              // Уменьшаем скорость (эффект трения о стену)
+              this.carVelocity.x *= 0.5;
+              this.carVelocity.z *= 0.5;
+              this.carSpeed *= 0.5;
+              
+              collision = true;
+              break;
+          }
+      }
+  }
+  
+  // Обновляем позицию машины
+  if (!collision) {
       this.car.position.x = newPosX;
       this.car.position.z = newPosZ;
   }
 }
-  initMobileControls() {
-    // Проверяем, является ли устройство мобильным по ширине экрана или user-agent
-    const isMobile = window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+initMobileControls() {
+  // Проверяем, является ли устройство мобильным по ширине экрана или user-agent
+  const isMobile = window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  if (!isMobile) return; // Не создаем кнопки для десктопа
+  
+  // Создаем контейнер для всех кнопок
+  const controlsContainer = document.createElement('div');
+  controlsContainer.style.position = 'fixed';
+  controlsContainer.style.bottom = '20px';
+  controlsContainer.style.left = '0';
+  controlsContainer.style.width = '100%';
+  controlsContainer.style.display = 'flex';
+  controlsContainer.style.justifyContent = 'space-between';
+  controlsContainer.style.zIndex = '1000';
+  document.body.appendChild(controlsContainer);
+  
+  // Создаем левую панель для газа/тормоза (вертикальное расположение)
+  const leftPanel = document.createElement('div');
+  leftPanel.style.display = 'flex';
+  leftPanel.style.flexDirection = 'column'; // Вертикальное расположение
+  leftPanel.style.marginLeft = '20px';
+  controlsContainer.appendChild(leftPanel);
+  
+  // Создаем правую панель для поворотов и ускорения
+  const rightPanel = document.createElement('div');
+  rightPanel.style.display = 'flex';
+  rightPanel.style.paddingTop = '10%';    
+  rightPanel.style.marginRight = '20px';
+  controlsContainer.appendChild(rightPanel);
+  
+  // Создаем центральную панель для кнопки прыжка
+  const centerPanel = document.createElement('div');
+  centerPanel.style.display = 'flex';
+  centerPanel.style.justifyContent = 'center';
+  centerPanel.style.alignItems = 'flex-end';
+  centerPanel.style.position = 'absolute';
+  centerPanel.style.bottom = '20px';
+  centerPanel.style.left = '50%';
+  centerPanel.style.transform = 'translateX(-50%)';
+  controlsContainer.appendChild(centerPanel);
+  
+  // Функция для создания кнопки
+  const createButton = (text, key, panel) => {
+    const button = document.createElement('div');
+    button.textContent = text;
+    button.style.width = '60px';
+    button.style.height = '60px';
+    button.style.borderRadius = '50%';
+    button.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+    button.style.display = 'flex';
+    button.style.justifyContent = 'center';
+    button.style.alignItems = 'center';
+    button.style.margin = '10px';
+    button.style.fontSize = '24px';
+    button.style.fontWeight = 'bold';
+    button.style.userSelect = 'none';
+    button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
     
-    if (!isMobile) return; // Не создаем кнопки для десктопа
+    // Обработчики событий для нажатия
+    button.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      this.keys[key] = true;
+      button.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+      button.style.transform = 'scale(0.95)';
+    });
     
-    // Создаем контейнер для всех кнопок
-    const controlsContainer = document.createElement('div');
-    controlsContainer.style.position = 'fixed';
-    controlsContainer.style.bottom = '20px';
-    controlsContainer.style.left = '0';
-    controlsContainer.style.width = '100%';
-    controlsContainer.style.display = 'flex';
-    controlsContainer.style.justifyContent = 'space-between';
-    controlsContainer.style.zIndex = '1000';
-    document.body.appendChild(controlsContainer);
-    
-    // Создаем левую панель для газа/тормоза (вертикальное расположение)
-    const leftPanel = document.createElement('div');
-    leftPanel.style.display = 'flex';
-    leftPanel.style.flexDirection = 'column'; // Вертикальное расположение
-    leftPanel.style.marginLeft = '20px';
-    controlsContainer.appendChild(leftPanel);
-    
-    // Создаем правую панель для поворотов и ускорения
-    const rightPanel = document.createElement('div');
-    rightPanel.style.display = 'flex';
-    rightPanel.style.paddingTop = '10%';    
-    rightPanel.style.marginRight = '20px';
-    controlsContainer.appendChild(rightPanel);
-    
-    // Функция для создания кнопки
-    const createButton = (text, key, panel) => {
-      const button = document.createElement('div');
-      button.textContent = text;
-      button.style.width = '60px';
-      button.style.height = '60px';
-      button.style.borderRadius = '50%';
+    button.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this.keys[key] = false;
       button.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
-      button.style.display = 'flex';
-      button.style.justifyContent = 'center';
-      button.style.alignItems = 'center';
-      button.style.margin = '10px';
-      button.style.fontSize = '24px';
-      button.style.fontWeight = 'bold';
-      button.style.userSelect = 'none';
-      button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
-      
-      // Обработчики событий для нажатия
-      button.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        this.keys[key] = true;
-        button.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
-        button.style.transform = 'scale(0.95)';
-      });
-      
-      button.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        this.keys[key] = false;
-        button.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
-        button.style.transform = 'scale(1)';
-      });
-      
-      panel.appendChild(button);
-      return button;
-    };
-    
-    // Создаем кнопки движения (газ сверху, тормоз снизу) на левой панели
-    createButton('↑', 'KeyW', leftPanel); // Газ (вперед)
-    createButton('↓', 'KeyS', leftPanel); // Тормоз (назад)
-    
-    // Создаем кнопки поворота на правой панели
-    createButton('←', 'KeyA', rightPanel); // Влево
-    createButton('→', 'KeyD', rightPanel); // Вправо
-    
-    // Кнопка ускорения (турбо) на правой панели
-    const turboButton = createButton('⚡', 'ShiftLeft', rightPanel);
-    turboButton.style.backgroundColor = 'rgba(255, 220, 0, 0.5)';
-    
-    // Добавляем кнопку полноэкранного режима
-    const fullscreenButton = document.createElement('div');
-    fullscreenButton.textContent = '⛶';
-    fullscreenButton.style.position = 'fixed';
-    fullscreenButton.style.top = '20px';
-    fullscreenButton.style.right = '20px';
-    fullscreenButton.style.width = '50px';
-    fullscreenButton.style.height = '50px';
-    fullscreenButton.style.borderRadius = '50%';
-    fullscreenButton.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
-    fullscreenButton.style.display = 'flex';
-    fullscreenButton.style.justifyContent = 'center';
-    fullscreenButton.style.alignItems = 'center';
-    fullscreenButton.style.fontSize = '24px';
-    fullscreenButton.style.zIndex = '1000';
-    fullscreenButton.style.cursor = 'pointer';
-    fullscreenButton.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
-    
-    fullscreenButton.addEventListener('click', () => {
-      this.toggleFullscreen();
+      button.style.transform = 'scale(1)';
     });
     
-    document.body.appendChild(fullscreenButton);
+    panel.appendChild(button);
+    return button;
+  };
+  
+  // Создаем кнопки движения (газ сверху, тормоз снизу) на левой панели
+  createButton('↑', 'KeyW', leftPanel); // Газ (вперед)
+  createButton('↓', 'KeyS', leftPanel); // Тормоз (назад)
+  
+  // Создаем кнопки поворота на правой панели
+  createButton('←', 'KeyA', rightPanel); // Влево
+  createButton('→', 'KeyD', rightPanel); // Вправо
+  
+  // Кнопка ускорения (турбо) на правой панели
+  const turboButton = createButton('⚡', 'ShiftLeft', rightPanel);
+  turboButton.style.backgroundColor = 'rgba(255, 220, 0, 0.5)';
+  
+  // Добавляем кнопку прыжка в центральную панель
+  const jumpButton = createButton('↑↑', 'Space', centerPanel);
+  jumpButton.style.backgroundColor = 'rgba(0, 255, 255, 0.5)';
+  jumpButton.style.width = '70px';
+  jumpButton.style.height = '70px';
+  jumpButton.style.fontSize = '28px';
+  
+  // Специальный обработчик для кнопки прыжка
+  jumpButton.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    this.keys['Space'] = true;
+    jumpButton.style.backgroundColor = 'rgba(0, 255, 255, 0.8)';
+    jumpButton.style.transform = 'scale(0.95)';
     
-    // Обработчик изменения размера окна
-    window.addEventListener('resize', () => {
-      // Если размер экрана изменился, скрываем или показываем элементы управления
-      if (window.innerWidth < 1024) {
-        controlsContainer.style.display = 'flex';
-        fullscreenButton.style.display = 'flex';
-      } else {
-        controlsContainer.style.display = 'none';
-        fullscreenButton.style.display = 'none';
-      }
-    });
-  }
+    // Добавляем логику прыжка из обработчика клавиатуры
+    if (!this.isJumping && this.jumpCooldown === 0) {
+      this.isJumping = true;
+      this.jumpForce = this.maxJumpForce;
+      this.car.rotation.x = -0.2;
+    }
+  });
+  
+  // Добавляем кнопку полноэкранного режима
+  const fullscreenButton = document.createElement('div');
+  fullscreenButton.textContent = '⛶';
+  fullscreenButton.style.position = 'fixed';
+  fullscreenButton.style.top = '20px';
+  fullscreenButton.style.right = '20px';
+  fullscreenButton.style.width = '50px';
+  fullscreenButton.style.height = '50px';
+  fullscreenButton.style.borderRadius = '50%';
+  fullscreenButton.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+  fullscreenButton.style.display = 'flex';
+  fullscreenButton.style.justifyContent = 'center';
+  fullscreenButton.style.alignItems = 'center';
+  fullscreenButton.style.fontSize = '24px';
+  fullscreenButton.style.zIndex = '1000';
+  fullscreenButton.style.cursor = 'pointer';
+  fullscreenButton.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+  
+  fullscreenButton.addEventListener('click', () => {
+    this.toggleFullscreen();
+  });
+  
+  document.body.appendChild(fullscreenButton);
+  
+  // Обработчик изменения размера окна
+  window.addEventListener('resize', () => {
+    // Если размер экрана изменился, скрываем или показываем элементы управления
+    if (window.innerWidth < 1024) {
+      controlsContainer.style.display = 'flex';
+      fullscreenButton.style.display = 'flex';
+    } else {
+      controlsContainer.style.display = 'none';
+      fullscreenButton.style.display = 'none';
+    }
+  });
+}
   
   // Метод для переключения полноэкранного режима
   toggleFullscreen() {
@@ -2886,7 +3154,7 @@ initSimpleToys() {
       const mountainGroup = new THREE.Group();
   
       // Основная часть горы - более сглаженная и естественная форма
-      const mountainGeometry = new THREE.ConeGeometry(4, 7, 8);
+      const mountainGeometry = new THREE.ConeGeometry(4, 4, 3);
   
       // Материал для горы с имитацией текстуры камня
       const mountainMaterial = new THREE.MeshStandardMaterial({
@@ -2899,13 +3167,13 @@ initSimpleToys() {
       mountainGroup.add(mountain);
   
       // Добавляем вторую, меньшую гору рядом для создания горного массива
-      const smallerMountainGeometry = new THREE.ConeGeometry(8, 12, 8);
+      const smallerMountainGeometry = new THREE.ConeGeometry(8, 6, 4);
       const smallerMountain = new THREE.Mesh(smallerMountainGeometry, mountainMaterial.clone());
       smallerMountain.position.set(2.5, 0, 1.5);
       mountainGroup.add(smallerMountain);
   
       // Добавляем третью, еще меньшую гору
-      const smallestMountainGeometry = new THREE.ConeGeometry(6, 8, 6);
+      const smallestMountainGeometry = new THREE.ConeGeometry(6, 4, 3);
       const smallestMountain = new THREE.Mesh(smallestMountainGeometry, mountainMaterial.clone());
       smallestMountain.position.set(-2, 0, -1.5);
       mountainGroup.add(smallestMountain);
@@ -2917,25 +3185,25 @@ initSimpleToys() {
       });
   
       // Снежная шапка для основной горы
-      const mainSnowCapGeometry = new THREE.ConeGeometry(1.5, 6, 4);
+      const mainSnowCapGeometry = new THREE.ConeGeometry(1.5, 6, 3);
       const mainSnowCap = new THREE.Mesh(mainSnowCapGeometry, snowMaterial);
       mainSnowCap.position.y = 3.5;
       mountainGroup.add(mainSnowCap);
   
       // Снежная шапка для второй горы
-      const smallerSnowCapGeometry = new THREE.ConeGeometry(1.1, 6, 4);
+      const smallerSnowCapGeometry = new THREE.ConeGeometry(1.1, 6, 3);
       const smallerSnowCap = new THREE.Mesh(smallerSnowCapGeometry, snowMaterial);
       smallerSnowCap.position.set(2.5, 2.5, 1.5);
       mountainGroup.add(smallerSnowCap);
   
       // Снежная шапка для третьей горы
-      const smallestSnowCapGeometry = new THREE.ConeGeometry(0.8, 0.8, 8);
+      const smallestSnowCapGeometry = new THREE.ConeGeometry(0.8, 0.8, 4);
       const smallestSnowCap = new THREE.Mesh(smallestSnowCapGeometry, snowMaterial);
       smallestSnowCap.position.set(-2, 0, -1.5);
       mountainGroup.add(smallestSnowCap);
   
       // Добавляем "каменистость" у основания гор
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 3; i++) {
           const rockSize = 0.5 + Math.random() * 0.8;
           const rockGeometry = new THREE.DodecahedronGeometry(rockSize, 0);
           const rockMaterial = mountainMaterial.clone();
@@ -2944,7 +3212,7 @@ initSimpleToys() {
           const rock = new THREE.Mesh(rockGeometry, rockMaterial);
   
           // Размещаем камни вокруг основания гор
-          const angle = (i / 12) * Math.PI * 2;
+          const angle = (i / 3) * Math.PI * 2;
           const radius = 4 + Math.random() * 2;
           rock.position.set(
               Math.cos(angle) * radius,
