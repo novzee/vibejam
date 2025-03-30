@@ -45,38 +45,45 @@ class ThreeJSTemplate {
         this.createCoinCounter();
         this.initMobileControls();
     }
-    initCoins() {
-        // Создаем группу монет
-        for (let i = 0; i < this.coinCount; i++) {
-            const coin = new THREE.Group();
+    // Модифицированная функция initCoins для генерации монет только внутри круга
+initCoins() {
+  // Создаем группу монет
+  const skyRadius = 98; // Радиус чуть меньше чем у неба (100)
+  
+  for (let i = 0; i < this.coinCount; i++) {
+      const coin = new THREE.Group();
 
-            // Текстура монеты
-            const coinTexture = new THREE.TextureLoader().load(coin1);
-            const coinMaterial = new THREE.MeshBasicMaterial({
-                map: coinTexture,
-                transparent: true,
-                side: THREE.DoubleSide,
-                color: 0xffdf00 // Золотой цвет
-            });
+      // Текстура монеты
+      const coinTexture = new THREE.TextureLoader().load(coin1);
+      const coinMaterial = new THREE.MeshBasicMaterial({
+          map: coinTexture,
+          transparent: true,
+          side: THREE.DoubleSide,
+          color: 0xffdf00 // Золотой цвет
+      });
 
-            const coinMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), coinMaterial);
-            coin.add(coinMesh);
+      const coinMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), coinMaterial);
+      coin.add(coinMesh);
 
-            // Случайное размещение монет на карте
-            coin.position.set(
-                Math.random() * 120 - 40,
-                0.5, // Немного над землей
-                Math.random() * 120 - 40
-            );
+      // Генерируем монеты в пределах круга
+      let angle = Math.random() * Math.PI * 2;
+      let radius = Math.random() * skyRadius * 0.9; // Используем 90% от радиуса неба
+      
+      // Используем полярные координаты для равномерного распределения
+      coin.position.set(
+          radius * Math.cos(angle),
+          0.5, // Немного над землей
+          radius * Math.sin(angle)
+      );
 
-            this.coins.push({
-                mesh: coin,
-                collected: false
-            });
+      this.coins.push({
+          mesh: coin,
+          collected: false
+      });
 
-            this.scene.add(coin);
-        }
-    }
+      this.scene.add(coin);
+  }
+}
 
     createCoinCounter() {
         // Создание счетчика на экране
@@ -1311,75 +1318,106 @@ class ThreeJSTemplate {
       window.addEventListener("keyup", (e) => (this.keys[e.code] = false));
   }
   
-  updateCar() {
-      this.carDirection.set(Math.sin(this.car.rotation.y), 0, Math.cos(this.car.rotation.y));
-      let acceleration = 0;
-      if (this.keys["KeyW"]) {
-          acceleration = this.keys["ShiftLeft"] || this.keys["ShiftRight"] ? 0.01 : 0.005;
-      } else if (this.keys["KeyS"]) acceleration = -0.005;
-      this.carSpeed += acceleration;
-      this.carSpeed *= 0.98;
-      
-      let steering = 0;
-      if (this.keys["KeyA"]) steering = 0.03;
-      if (this.keys["KeyD"]) steering = -0.03;
-      
-      // Поворачиваем передние колеса при повороте
-      if (steering !== 0) {
-          this.frontWheelGroup.rotation.y = steering * 10; // Усиливаем эффект для видимости
-      } else {
-          // Плавно возвращаем колеса в прямое положение
-          this.frontWheelGroup.rotation.y *= 0.8;
-      }
-      
-      const steeringIntensity = Math.abs(steering);
-      const speedThreshold = 0.08;
-      
-      if (Math.abs(this.carSpeed) > speedThreshold && steeringIntensity > 0) {
-          this.isDrifting = true;
-          this.traction = Math.max(0.3, this.traction - 0.1);
-          this.createDriftSmoke();
-      } else {
-          this.traction = Math.min(1.0, this.traction + 0.05);
-          this.isDrifting = false;
-      }
-      
-      this.car.rotation.y += steering * (this.isDrifting ? 1.5 : 1.0);
-      
-      // Вращаем колеса при движении с учетом направления
-      const wheelRotationSpeed = this.carSpeed * 0.5;
-      this.wheels.forEach(wheel => {
-          wheel.rotation.x += wheelRotationSpeed;
-      });
-      
-      // Добавляем небольшую анимацию подвески при движении
-      if (this.carSpeed !== 0) {
-          const bounceAmount = Math.sin(Date.now() * 0.01) * 0.005 * Math.abs(this.carSpeed) * 5;
-          this.car.position.y = bounceAmount + 0.05;
-          
-          // Наклоняем машину при разгоне/торможении
-          if (acceleration > 0) {
-              this.car.rotation.x = -0.03 * Math.abs(this.carSpeed) * 3;
-          } else if (acceleration < 0) {
-              this.car.rotation.x = 0.03 * Math.abs(this.carSpeed) * 3;
-          } else {
-              this.car.rotation.x *= 0.9; // Плавно возвращаемся к горизонтальному положению
-          }
-          
-          // Наклоняем машину в сторону поворота
-          if (steering !== 0) {
-              this.car.rotation.z = -steering * Math.abs(this.carSpeed) * 2;
-          } else {
-              this.car.rotation.z *= 0.9; // Плавно возвращаемся к вертикальному положению
-          }
-      }
-      
-      this.carVelocity.x = this.carVelocity.x * (1 - this.traction) + this.carDirection.x * this.carSpeed * this.traction;
-      this.carVelocity.z = this.carVelocity.z * (1 - this.traction) + this.carDirection.z * this.carSpeed * this.traction;
-      
-      this.car.position.x += this.carVelocity.x;
-      this.car.position.z += this.carVelocity.z;
+// Модифицированная функция updateCar для ограничения движения
+updateCar() {
+  this.carDirection.set(Math.sin(this.car.rotation.y), 0, Math.cos(this.car.rotation.y));
+  let acceleration = 0;
+  if (this.keys["KeyW"]) {
+      acceleration = this.keys["ShiftLeft"] || this.keys["ShiftRight"] ? 0.01 : 0.005;
+  } else if (this.keys["KeyS"]) acceleration = -0.005;
+  this.carSpeed += acceleration;
+  this.carSpeed *= 0.98;
+  
+  let steering = 0;
+  if (this.keys["KeyA"]) steering = 0.03;
+  if (this.keys["KeyD"]) steering = -0.03;
+  
+  // Поворачиваем передние колеса при повороте
+  if (steering !== 0) {
+      this.frontWheelGroup.rotation.y = steering * 10; // Усиливаем эффект для видимости
+  } else {
+      // Плавно возвращаем колеса в прямое положение
+      this.frontWheelGroup.rotation.y *= 0.8;
   }
+  
+  const steeringIntensity = Math.abs(steering);
+  const speedThreshold = 0.08;
+  
+  if (Math.abs(this.carSpeed) > speedThreshold && steeringIntensity > 0) {
+      this.isDrifting = true;
+      this.traction = Math.max(0.3, this.traction - 0.1);
+      this.createDriftSmoke();
+  } else {
+      this.traction = Math.min(1.0, this.traction + 0.05);
+      this.isDrifting = false;
+  }
+  
+  this.car.rotation.y += steering * (this.isDrifting ? 1.5 : 1.0);
+  
+  // Вращаем колеса при движении с учетом направления
+  const wheelRotationSpeed = this.carSpeed * 0.5;
+  this.wheels.forEach(wheel => {
+      wheel.rotation.x += wheelRotationSpeed;
+  });
+  
+  // Добавляем небольшую анимацию подвески при движении
+  if (this.carSpeed !== 0) {
+      const bounceAmount = Math.sin(Date.now() * 0.01) * 0.005 * Math.abs(this.carSpeed) * 5;
+      this.car.position.y = bounceAmount + 0.05;
+      
+      // Наклоняем машину при разгоне/торможении
+      if (acceleration > 0) {
+          this.car.rotation.x = -0.03 * Math.abs(this.carSpeed) * 3;
+      } else if (acceleration < 0) {
+          this.car.rotation.x = 0.03 * Math.abs(this.carSpeed) * 3;
+      } else {
+          this.car.rotation.x *= 0.9; // Плавно возвращаемся к горизонтальному положению
+      }
+      
+      // Наклоняем машину в сторону поворота
+      if (steering !== 0) {
+          this.car.rotation.z = -steering * Math.abs(this.carSpeed) * 2;
+      } else {
+          this.car.rotation.z *= 0.9; // Плавно возвращаемся к вертикальному положению
+      }
+  }
+  
+  this.carVelocity.x = this.carVelocity.x * (1 - this.traction) + this.carDirection.x * this.carSpeed * this.traction;
+  this.carVelocity.z = this.carVelocity.z * (1 - this.traction) + this.carDirection.z * this.carSpeed * this.traction;
+  
+  // Добавляем новые координаты машины
+  let newPosX = this.car.position.x + this.carVelocity.x;
+  let newPosZ = this.car.position.z + this.carVelocity.z;
+  
+  // Проверяем границу круга
+  const skyRadius = 97; // Немного меньше радиуса неба для эффекта столкновения
+  const distanceFromCenter = Math.sqrt(newPosX * newPosX + newPosZ * newPosZ);
+  
+  if (distanceFromCenter > skyRadius) {
+      // Машина пытается выйти за границу - останавливаем и немного отбрасываем назад
+      // Находим направление от центра к машине
+      const dirX = newPosX / distanceFromCenter;
+      const dirZ = newPosZ / distanceFromCenter;
+      
+      // Устанавливаем позицию точно на границе
+      this.car.position.x = dirX * skyRadius * 0.98; // Немного внутрь от границы
+      this.car.position.z = dirZ * skyRadius * 0.98;
+      
+      // Отражаем скорость (эффект отскока)
+      const dotProduct = this.carVelocity.x * dirX + this.carVelocity.z * dirZ;
+      this.carVelocity.x -= 2 * dotProduct * dirX;
+      this.carVelocity.z -= 2 * dotProduct * dirZ;
+      
+      // Уменьшаем скорость (эффект трения)
+      this.carVelocity.x *= 0.3;
+      this.carVelocity.z *= 0.3;
+      this.carSpeed *= 0.3;
+  } else {
+      // Если в пределах границы, обновляем позицию как обычно
+      this.car.position.x = newPosX;
+      this.car.position.z = newPosZ;
+  }
+}
   initMobileControls() {
     // Проверяем, является ли устройство мобильным по ширине экрана или user-agent
     const isMobile = window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
